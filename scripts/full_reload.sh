@@ -8,9 +8,13 @@ TMPBASE=/opt/unetlab/tmp/0/$UUID
 SRCDIR=/tmp/lab-configs/configs
 
 # id name txtname  (Junos nodes need iso rebuild)
-CISCO=(  "1:7206VXR" "4:PE1" "5:PE2" "6:PE3" "7:PE4" "8:PE5" )
+CISCO=(  "1:7206VXR" "4:PE1" "5:PE2" "6:PE3" "7:PE4" "8:PE5"
+         "14:ACDC" "15:SWANS" "16:SEPULTURA" "17:NIN" )
 JUNOS=(  "2:RR1" "3:RR2" )
 MTIK=(   "9:CPE1" "10:CPE2" "11:CPE3" "12:CPE4" "13:CPE5" )
+# FreeBSD (id 18) is intentionally NOT wiped here -- it would erase the
+# customised qcow2. To reset it, restage the image and re-run freebsd_inject.sh.
+FREEBSD=( "18:freebsd13" )
 
 stopwipe () {
     local nid=$1 name=$2
@@ -57,12 +61,12 @@ for entry in "${JUNOS[@]}"; do
     stage_junos $nid $name
 done
 
-# Phase 3: start everything
-for entry in "${CISCO[@]}" "${JUNOS[@]}" "${MTIK[@]}"; do
+# Phase 3: start everything (Cisco/Junos/MikroTik wiped+started, FreeBSD just started)
+for entry in "${CISCO[@]}" "${JUNOS[@]}" "${MTIK[@]}" "${FREEBSD[@]}"; do
     nid=${entry%%:*}; name=${entry##*:}
     start $nid $name
     sleep 1
 done
 
 echo
-echo "All 13 nodes started. Cisco/MikroTik converge in ~2 min, Junos ~6 min for cloud-init commit."
+echo "All 18 nodes started. Cisco/MikroTik converge in ~2 min, Junos ~6 min for cloud-init commit, FreeBSD ~1 min."
