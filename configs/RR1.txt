@@ -50,6 +50,11 @@ interfaces {
 routing-options {
     router-id 172.16.254.1;
     autonomous-system 65001;
+    resolution {
+        rib bgp.l3vpn.0 {
+            resolution-ribs inet.0;
+        }
+    }
 }
 
 protocols {
@@ -67,6 +72,7 @@ protocols {
             type internal;
             local-address 172.16.254.1;
             cluster 172.16.254.1;
+            keep all;
             family inet {
                 unicast;
             }

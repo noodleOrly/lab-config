@@ -118,7 +118,13 @@ Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other l
 - **`isis` is not valid in `host-inbound-traffic protocols`** — ISIS uses link-local OSI frames that bypass IP host-inbound. Only IP-based protocols belong here.
 - **`lldp` in `host-inbound-traffic protocols` is silently dropped** — LLDP is L2 link-local. The top-level `protocols lldp interface all` is what enables it.
 - **Intrazone trust→trust policy is required for inbound sessions to lo0** — `host-inbound-traffic { system-services { ping }; protocols { bgp } }` only governs the host-inbound check *after* a flow session is created. With no security policies, the default-deny blocks fresh inbound session creation, so packets reach lo0 on the wire but are silently dropped (no `show security flow session` entry). PE↔RR BGP works because the RR initiates outbound TCP and the SYN-ACK matches that session, but RR1↔RR2 BGP and ICMP need an explicit `from-zone trust to-zone trust permit-all` policy (kept in both RR configs).
+- **VPNv4 RR without LDP needs `resolution-ribs inet.0` plus `keep all`** (LAB-2). By default Junos resolves VPNv4 next-hops in `inet.3` (LDP-populated). The vSRX RRs don't run LDP, so without `set routing-options resolution rib bgp.l3vpn.0 resolution-ribs inet.0` the routes land in `bgp.l3vpn.0` as Hidden / "Next hop type: Unusable" and aren't reflected. Also need `set protocols bgp group INTERNAL keep all` so routes whose RT doesn't match a local VRF aren't discarded. Both kept in `RR{1,2}.txt`.
 - Cloud-init creates `<tmp>/<id>/.configured` when the first-boot commit completes — useful for polling. Boot+commit ≈ 6 min from `start`.
+
+### EVE-NG host (Ubuntu 20.04 + EVE-NG)
+- **`PA-2FE-TX` is not in the stock c7200 template or `__node.php` slot dispatcher** — `scripts/eve_setup.sh` patches both (idempotently). Required for PE4 in LAB-2 (two PA-2FE-TX cards in slots 4 and 5, four physical ports for the new Cisco CEs).
+- Run `scripts/eve_setup.sh` once on the EVE-NG host before deploying LAB-2 topology. Without it, dynamips silently omits slots 4/5 and EVE-NG warns "invalid ethernet interface (20014)".
+- libguestfs (`guestmount`/`guestfish`) currently fails on this host with "appliance closed connection" — kernel/qemu mismatch. FreeBSD qcow2 customisation falls back to first-boot console configuration.
 
 ### MikroTik CHR
 - CDP/LLDP/MNDP via `/ip neighbor discovery-settings set protocol=cdp,lldp,mndp`. Default interface list (all non-dynamic) is fine.
@@ -130,6 +136,7 @@ Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other l
 - `/boot/loader.conf` also enables serial console (`boot_multicons="YES"`, `console="comconsole,vidconsole"`) so EVE-NG console-port automation works.
 - Per-FIB default routes (`route_vlan1803default="default 100.112.1.1 -fib 2"` etc.) are how customer-bound traffic is steered to the right VRF; `setfib N` is how you choose at runtime.
 - Image is **not** auto-injected by `sync_eve_configs.py`. Use `scripts/freebsd_inject.sh` (or first-boot console session) to apply `/etc/rc.conf`, `/boot/loader.conf`, etc., into the qcow2.
+- **Known unresolved (LAB-2)**: `scripts/freebsd_inject.sh` relies on libguestfs which is broken on this EVE-NG host (see EVE-NG section). The qcow2 also defaults to vidconsole only, so the EVE-NG telnet console (port 32786) is silent on first boot. Workaround: connect to the FreeBSD VM via the EVE-NG web GUI's VNC viewer for the initial config session, then write `/boot/loader.conf` with `boot_multicons="YES"; console="comconsole,vidconsole"` and reboot — subsequent sessions go via serial.
 
 ## Known caveats
 - LLDP has no neighbours in the lab today: the only LLDP-capable speakers (RRs, CPEs) aren't directly connected — they go through c7200 PEs which lack LLDP and don't relay it.
