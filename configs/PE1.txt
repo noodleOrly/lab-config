@@ -6,6 +6,8 @@
 
 hostname PE1
 no ip domain-lookup
+ip cef
+mpls label protocol ldp
 !
 enable secret 0 lab
 !
@@ -22,6 +24,7 @@ interface FastEthernet0/0
  ip address 10.0.1.1 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet1/0
@@ -29,6 +32,7 @@ interface FastEthernet1/0
  ip address 10.0.1.18 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet2/0
@@ -36,6 +40,7 @@ interface FastEthernet2/0
  ip address 10.0.1.21 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet3/0
@@ -53,6 +58,8 @@ router isis LAB
  metric-style wide
  passive-interface Loopback0
  redistribute static metric 20 metric-type external level-2
+!
+mpls ldp router-id Loopback0 force
 !
 router bgp 65001
  bgp router-id 172.16.10.1

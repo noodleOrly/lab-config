@@ -107,9 +107,13 @@ protocols {
             family inet {
                 unicast;
             }
+            family inet-vpn {
+                unicast;
+            }
             neighbor 172.16.10.3 { description PE3; }
             neighbor 172.16.10.4 { description PE4; }
             neighbor 172.16.10.5 { description PE5; }
+            neighbor 172.16.254.254 { description "7206VXR (PE for FreeBSD)"; }
             neighbor 172.16.254.1 { description "RR1 (inter-RR)"; cluster-id 0.0.0.0; }
         }
     }

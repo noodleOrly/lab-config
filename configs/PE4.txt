@@ -1,16 +1,53 @@
 ! ============================================================
 ! PE4 - Cisco c7200 PE Router
 ! Loopback: 172.16.10.4/32
-! RR client: RR2 (172.16.254.2)
+! RR client: RR2 (172.16.254.2) -- ipv4-unicast + vpnv4
+! New for LAB-2:
+!   - MPLS LDP on core IS-IS interfaces
+!   - 4 customer VRFs (ACDC/SWANS/SEPULTURA/NIN), one per new CPE
+!   - PE4<->CPE: 802.1Q with VLAN 10 in global (IS-IS+MPLS) and
+!               VLAN 20 in matching VRF (carries customer traffic)
+!   - VPNv4 BGP to RR2; static per VRF for 192.168.100.0/24
 ! ============================================================
 
 hostname PE4
 no ip domain-lookup
+ip cef
+mpls label protocol ldp
 !
 enable secret 0 lab
 !
 cdp run
 ! NOTE: lldp not supported on this c7200 IOS image (15.2(4)S2 advanced enterprise)
+!
+! -- VRF definitions (mirror of 7206VXR PE side)
+vrf definition ACDC
+ rd 65001:1803
+ address-family ipv4
+  route-target export 65001:1803
+  route-target import 65001:1803
+ exit-address-family
+!
+vrf definition SWANS
+ rd 65001:1804
+ address-family ipv4
+  route-target export 65001:1804
+  route-target import 65001:1804
+ exit-address-family
+!
+vrf definition SEPULTURA
+ rd 65001:1805
+ address-family ipv4
+  route-target export 65001:1805
+  route-target import 65001:1805
+ exit-address-family
+!
+vrf definition NIN
+ rd 65001:1806
+ address-family ipv4
+  route-target export 65001:1806
+  route-target import 65001:1806
+ exit-address-family
 !
 interface Loopback0
  description ROUTER-ID
@@ -22,6 +59,7 @@ interface FastEthernet0/0
  ip address 10.0.1.10 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet1/0
@@ -29,6 +67,7 @@ interface FastEthernet1/0
  ip address 10.0.1.13 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet2/0
@@ -36,6 +75,7 @@ interface FastEthernet2/0
  ip address 10.0.1.26 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet3/0
@@ -43,9 +83,96 @@ interface FastEthernet3/0
  ip address 10.0.2.13 255.255.255.252
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
+! -- New PE-CE links: one physical per CPE, 802.1Q with VLAN 10 (global IS-IS+MPLS)
+!    and VLAN 20 (per-customer VRF). VLAN 10 carries the CPE Lo0 (172.16.21.X)
+!    and label distribution; VLAN 20 carries customer traffic to/from Lo100.
+!
+interface FastEthernet4/0
+ description PE-CE -- ACDC fa0/0 (trunk: vlan10=global, vlan20=VRF ACDC)
+ no ip address
+ no shutdown
+!
+interface FastEthernet4/0.10
+ description CORE -- ACDC fa0/0.10 (global IS-IS+MPLS)
+ encapsulation dot1Q 10
+ ip address 10.0.21.1 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ mpls ip
+!
+interface FastEthernet4/0.20
+ description CE -- ACDC fa0/0.20 (VRF ACDC customer)
+ encapsulation dot1Q 20
+ vrf forwarding ACDC
+ ip address 10.0.22.1 255.255.255.252
+!
+interface FastEthernet4/1
+ description PE-CE -- SWANS fa0/0 (trunk)
+ no ip address
+ no shutdown
+!
+interface FastEthernet4/1.10
+ description CORE -- SWANS fa0/0.10 (global)
+ encapsulation dot1Q 10
+ ip address 10.0.21.5 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ mpls ip
+!
+interface FastEthernet4/1.20
+ description CE -- SWANS fa0/0.20 (VRF SWANS)
+ encapsulation dot1Q 20
+ vrf forwarding SWANS
+ ip address 10.0.22.5 255.255.255.252
+!
+interface FastEthernet5/0
+ description PE-CE -- SEPULTURA fa0/0 (trunk)
+ no ip address
+ no shutdown
+!
+interface FastEthernet5/0.10
+ description CORE -- SEPULTURA fa0/0.10 (global)
+ encapsulation dot1Q 10
+ ip address 10.0.21.9 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ mpls ip
+!
+interface FastEthernet5/0.20
+ description CE -- SEPULTURA fa0/0.20 (VRF SEPULTURA)
+ encapsulation dot1Q 20
+ vrf forwarding SEPULTURA
+ ip address 10.0.22.9 255.255.255.252
+!
+interface FastEthernet5/1
+ description PE-CE -- NIN fa0/0 (trunk)
+ no ip address
+ no shutdown
+!
+interface FastEthernet5/1.10
+ description CORE -- NIN fa0/0.10 (global)
+ encapsulation dot1Q 10
+ ip address 10.0.21.13 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ mpls ip
+!
+interface FastEthernet5/1.20
+ description CE -- NIN fa0/0.20 (VRF NIN)
+ encapsulation dot1Q 20
+ vrf forwarding NIN
+ ip address 10.0.22.13 255.255.255.252
+!
 ip route 172.16.20.4 255.255.255.255 10.0.2.14
+!
+! -- Per-VRF static: customer prefix on each new CPE's Lo100
+ip route vrf ACDC 192.168.100.0 255.255.255.0 10.0.22.2
+ip route vrf SWANS 192.168.100.0 255.255.255.0 10.0.22.6
+ip route vrf SEPULTURA 192.168.100.0 255.255.255.0 10.0.22.10
+ip route vrf NIN 192.168.100.0 255.255.255.0 10.0.22.14
 !
 router isis LAB
  net 49.0001.0000.AC10.0A04.00
@@ -53,6 +180,8 @@ router isis LAB
  metric-style wide
  passive-interface Loopback0
  redistribute static metric 20 metric-type external level-2
+!
+mpls ldp router-id Loopback0 force
 !
 router bgp 65001
  bgp router-id 172.16.10.4
@@ -67,6 +196,28 @@ router bgp 65001
   network 172.16.10.4 mask 255.255.255.255
   neighbor 172.16.254.2 activate
   neighbor 172.16.254.2 next-hop-self
+ exit-address-family
+ !
+ address-family vpnv4
+  neighbor 172.16.254.2 activate
+  neighbor 172.16.254.2 send-community both
+ exit-address-family
+ !
+ address-family ipv4 vrf ACDC
+  redistribute static
+  redistribute connected
+ exit-address-family
+ address-family ipv4 vrf SWANS
+  redistribute static
+  redistribute connected
+ exit-address-family
+ address-family ipv4 vrf SEPULTURA
+  redistribute static
+  redistribute connected
+ exit-address-family
+ address-family ipv4 vrf NIN
+  redistribute static
+  redistribute connected
  exit-address-family
 !
 snmp-server community public RO

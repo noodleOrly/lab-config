@@ -1,0 +1,71 @@
+! ============================================================
+! NIN - Cisco c7200 CE Router (VRF NIN, vlan1806)
+! Loopback0: 172.16.21.4/32 (advertised in global IS-IS)
+! Loopback100: 192.168.100.1/24 (customer local, reachable over VRF)
+! Uplink: fa0/0 trunk to PE4 fa5/1
+!   .10  global IS-IS+MPLS link    -- 10.0.21.12/30
+!   .20  customer (PE4 VRF NIN)    -- 10.0.22.12/30
+! ============================================================
+
+hostname NIN
+no ip domain-lookup
+ip cef
+mpls label protocol ldp
+!
+enable secret 0 lab
+!
+cdp run
+!
+interface Loopback0
+ description ROUTER-ID
+ ip address 172.16.21.4 255.255.255.255
+ ip router isis LAB
+!
+interface Loopback100
+ description CUSTOMER-LOCAL
+ ip address 192.168.100.1 255.255.255.0
+!
+interface FastEthernet0/0
+ description TRUNK -- PE4 fa5/1 (vlan10=global, vlan20=VRF NIN)
+ no ip address
+ no shutdown
+!
+interface FastEthernet0/0.10
+ description CORE -- PE4 fa5/1.10 (global IS-IS+MPLS)
+ encapsulation dot1Q 10
+ ip address 10.0.21.14 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ mpls ip
+!
+interface FastEthernet0/0.20
+ description CE -- PE4 fa5/1.20 (VRF NIN customer side)
+ encapsulation dot1Q 20
+ ip address 10.0.22.14 255.255.255.252
+!
+ip route 0.0.0.0 0.0.0.0 10.0.22.13
+!
+router isis LAB
+ net 49.0001.0000.AC10.1504.00
+ is-type level-2-only
+ metric-style wide
+ passive-interface Loopback0
+!
+mpls ldp router-id Loopback0 force
+!
+snmp-server community public RO
+snmp-server location EVE-NG Lab
+!
+logging host 10.2.0.114
+logging trap informational
+logging facility local6
+service timestamps log datetime msec localtime
+!
+line con 0
+ privilege level 15
+ logging synchronous
+line vty 0 4
+ login
+ password lab
+!
+end
