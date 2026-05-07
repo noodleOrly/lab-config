@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.bak
+*.bak.*
+*.tgz
+*.swp
+.env
+.env.local
