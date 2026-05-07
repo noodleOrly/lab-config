@@ -7,3 +7,6 @@ __pycache__/
 *.swp
 .env
 .env.local
+images/
+*.qcow2
+*.qcow2.xz

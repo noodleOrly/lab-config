@@ -75,6 +75,18 @@ security {
             }
         }
     }
+    policies {
+        from-zone trust to-zone trust {
+            policy permit-all {
+                match {
+                    source-address any;
+                    destination-address any;
+                    application any;
+                }
+                then { permit; }
+            }
+        }
+    }
 }
 
 protocols {
@@ -85,6 +97,7 @@ protocols {
             level 1 disable;
         }
         level 1 disable;
+        export [ ISIS-EXPORT ];
     }
     bgp {
         group INTERNAL {
@@ -102,5 +115,14 @@ protocols {
     }
     lldp {
         interface all;
+    }
+}
+
+policy-options {
+    policy-statement ISIS-EXPORT {
+        term loopback {
+            from { protocol direct; interface lo0.0; }
+            then accept;
+        }
     }
 }

@@ -24,14 +24,11 @@ Edit `configs/*.txt` here, sync to the EVE-NG host, optionally live-apply or wip
 
 | Host | Address | OS | Purpose |
 |---|---|---|---|
-| iris (jump) | `iris@10.2.0.122` | FreeBSD 14.3 | SSH jump into lab subnet |
 | EVE-NG | `root@10.2.0.147` | Ubuntu 20.04 + EVE-NG | Lab hypervisor |
 | Syslog target | `10.2.0.114` | — | Lab nodes ship syslog here |
 
 ```bash
-# From this Mac:
-ssh -i ~/.ssh/id_ollama iris@10.2.0.122
-# Then from iris:
+# From this Mac (direct, no jump host):
 ssh -i ~/.ssh/id_irisdce root@10.2.0.147
 ```
 
@@ -70,21 +67,18 @@ Source of truth is `configs/*.txt`. The scripts live in `scripts/` and run **on 
 ```bash
 # 1. Stage configs on EVE-NG
 tar -czf /tmp/lab-configs.tgz -C . configs/
-scp -i ~/.ssh/id_ollama /tmp/lab-configs.tgz iris@10.2.0.122:/tmp/
-ssh -i ~/.ssh/id_ollama iris@10.2.0.122 \
-  'scp -i ~/.ssh/id_irisdce /tmp/lab-configs.tgz root@10.2.0.147:/tmp/ && \
-   ssh -i ~/.ssh/id_irisdce root@10.2.0.147 \
-     "rm -rf /tmp/lab-configs && mkdir /tmp/lab-configs && cd /tmp/lab-configs && tar -xzf /tmp/lab-configs.tgz"'
+scp -i ~/.ssh/id_irisdce /tmp/lab-configs.tgz root@10.2.0.147:/tmp/
+ssh -i ~/.ssh/id_irisdce root@10.2.0.147 \
+  "rm -rf /tmp/lab-configs && mkdir /tmp/lab-configs && cd /tmp/lab-configs && tar -xzf /tmp/lab-configs.tgz"
 
 # 2. Sync repo into EVE-NG (writes tmp/<id>/startup-config + base64-replaces <config id> in .unl)
-ssh -i ~/.ssh/id_ollama iris@10.2.0.122 \
-  'ssh -i ~/.ssh/id_irisdce root@10.2.0.147 "python3 /tmp/sync_eve_configs.py"'
+ssh -i ~/.ssh/id_irisdce root@10.2.0.147 "python3 /tmp/sync_eve_configs.py"
 
 # 3a. Cisco / MikroTik: live-apply via console — running config picks it up immediately
-ssh ... "python3 /tmp/live_apply.py"
+ssh -i ~/.ssh/id_irisdce root@10.2.0.147 "python3 /tmp/live_apply.py"
 
 # 3b. Junos: stop + wipe + start so cloud-init reloads juniper.conf from config.iso
-ssh ... "/tmp/rr_reset.sh 2 RR1"   # or 3 RR2 — takes ~6 min for boot + commit
+ssh -i ~/.ssh/id_irisdce root@10.2.0.147 "/tmp/rr_reset.sh 2 RR1"   # or 3 RR2 — takes ~6 min for boot + commit
 ```
 
 Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other lab.
@@ -99,6 +93,7 @@ Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other l
 - **Use `encrypted-password "$6$..."`, not `plain-text-password-value`** — the latter is silently dropped at commit, leaving the surrounding `user { ... }` block ineffective and admin never created. Hash with `openssl passwd -6 -salt junoslab lab123`.
 - **`isis` is not valid in `host-inbound-traffic protocols`** — ISIS uses link-local OSI frames that bypass IP host-inbound. Only IP-based protocols belong here.
 - **`lldp` in `host-inbound-traffic protocols` is silently dropped** — LLDP is L2 link-local. The top-level `protocols lldp interface all` is what enables it.
+- **Intrazone trust→trust policy is required for inbound sessions to lo0** — `host-inbound-traffic { system-services { ping }; protocols { bgp } }` only governs the host-inbound check *after* a flow session is created. With no security policies, the default-deny blocks fresh inbound session creation, so packets reach lo0 on the wire but are silently dropped (no `show security flow session` entry). PE↔RR BGP works because the RR initiates outbound TCP and the SYN-ACK matches that session, but RR1↔RR2 BGP and ICMP need an explicit `from-zone trust to-zone trust permit-all` policy (kept in both RR configs).
 - Cloud-init creates `<tmp>/<id>/.configured` when the first-boot commit completes — useful for polling. Boot+commit ≈ 6 min from `start`.
 
 ### MikroTik CHR
