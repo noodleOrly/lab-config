@@ -93,6 +93,7 @@ Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other l
 - **Use `encrypted-password "$6$..."`, not `plain-text-password-value`** — the latter is silently dropped at commit, leaving the surrounding `user { ... }` block ineffective and admin never created. Hash with `openssl passwd -6 -salt junoslab lab123`.
 - **`isis` is not valid in `host-inbound-traffic protocols`** — ISIS uses link-local OSI frames that bypass IP host-inbound. Only IP-based protocols belong here.
 - **`lldp` in `host-inbound-traffic protocols` is silently dropped** — LLDP is L2 link-local. The top-level `protocols lldp interface all` is what enables it.
+- **Intrazone trust→trust policy is required for inbound sessions to lo0** — `host-inbound-traffic { system-services { ping }; protocols { bgp } }` only governs the host-inbound check *after* a flow session is created. With no security policies, the default-deny blocks fresh inbound session creation, so packets reach lo0 on the wire but are silently dropped (no `show security flow session` entry). PE↔RR BGP works because the RR initiates outbound TCP and the SYN-ACK matches that session, but RR1↔RR2 BGP and ICMP need an explicit `from-zone trust to-zone trust permit-all` policy (kept in both RR configs).
 - Cloud-init creates `<tmp>/<id>/.configured` when the first-boot commit completes — useful for polling. Boot+commit ≈ 6 min from `start`.
 
 ### MikroTik CHR
