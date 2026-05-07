@@ -1,0 +1,106 @@
+# ============================================================
+# RR2 - vSRX-NG Route Reflector 2
+# Loopback: 172.16.254.2
+# Reflects to: PE3, PE4, PE5
+# ISIS peer: 7206VXR (via ge-0/0/0)
+# ============================================================
+
+system {
+    host-name RR2;
+    root-authentication {
+        encrypted-password "$6$junoslab$QiGAQVia1qdfn2tfk3AjYudP7GpNq4NSaYukoAs6hvUUn9AVcBS0Kx41dYVxyI1JR7AhAFtKyxEq9Aq0XFy8H0";
+    }
+    login {
+        user admin {
+            class super-user;
+            authentication {
+                encrypted-password "$6$junoslab$QiGAQVia1qdfn2tfk3AjYudP7GpNq4NSaYukoAs6hvUUn9AVcBS0Kx41dYVxyI1JR7AhAFtKyxEq9Aq0XFy8H0";
+            }
+        }
+    }
+    services {
+        ssh;
+        telnet;
+        netconf { ssh; }
+    }
+    syslog {
+        user * { any emergency; }
+        file messages { any notice; authorization info; }
+        host 10.2.0.114 { any info; }
+    }
+}
+
+interfaces {
+    lo0 {
+        unit 0 {
+            description ROUTER-ID;
+            family inet { address 172.16.254.2/32; }
+            family iso { address 49.0001.1720.1625.4002.00; }
+        }
+    }
+    ge-0/0/0 {
+        unit 0 {
+            description "ISIS -- 7206VXR fa2/0";
+            family inet { address 10.0.0.6/30; }
+            family iso;
+        }
+    }
+}
+
+routing-options {
+    router-id 172.16.254.2;
+    autonomous-system 65001;
+}
+
+snmp {
+    community public {
+        authorization read-only;
+    }
+}
+
+security {
+    forwarding-options {
+        family iso { mode packet-based; }
+        family inet6 { mode packet-based; }
+    }
+    zones {
+        security-zone trust {
+            host-inbound-traffic {
+                system-services { ssh; telnet; ping; }
+                protocols { bgp; }
+            }
+            interfaces {
+                ge-0/0/0.0;
+                lo0.0;
+            }
+        }
+    }
+}
+
+protocols {
+    isis {
+        interface lo0.0 { passive; }
+        interface ge-0/0/0.0 {
+            point-to-point;
+            level 1 disable;
+        }
+        level 1 disable;
+    }
+    bgp {
+        group INTERNAL {
+            type internal;
+            local-address 172.16.254.2;
+            cluster 172.16.254.2;
+            family inet {
+                unicast;
+            }
+            neighbor 172.16.10.3 { description PE3; }
+            neighbor 172.16.10.4 { description PE4; }
+            neighbor 172.16.10.5 { description PE5; }
+            neighbor 172.16.254.1 { description "RR1 (inter-RR)"; cluster-id 0.0.0.0; }
+        }
+    }
+    lldp {
+        interface all;
+    }
+}

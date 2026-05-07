@@ -1,0 +1,116 @@
+# ============================================================
+# RR1 - vSRX-NG Route Reflector 1
+# Loopback: 172.16.254.1
+# Reflects to: PE1, PE2, PE3
+# ISIS peer: 7206VXR (via ge-0/0/0)
+# ============================================================
+
+system {
+    host-name RR1;
+    root-authentication {
+        encrypted-password "$6$junoslab$QiGAQVia1qdfn2tfk3AjYudP7GpNq4NSaYukoAs6hvUUn9AVcBS0Kx41dYVxyI1JR7AhAFtKyxEq9Aq0XFy8H0";
+    }
+    login {
+        user admin {
+            class super-user;
+            authentication {
+                encrypted-password "$6$junoslab$QiGAQVia1qdfn2tfk3AjYudP7GpNq4NSaYukoAs6hvUUn9AVcBS0Kx41dYVxyI1JR7AhAFtKyxEq9Aq0XFy8H0";
+            }
+        }
+    }
+    services {
+        ssh;
+        telnet;
+        netconf { ssh; }
+    }
+    syslog {
+        user * { any emergency; }
+        file messages { any notice; authorization info; }
+        host 10.2.0.114 { any info; }
+    }
+}
+
+interfaces {
+    lo0 {
+        unit 0 {
+            description ROUTER-ID;
+            family inet { address 172.16.254.1/32; }
+            family iso { address 49.0001.1720.1625.4001.00; }
+        }
+    }
+    ge-0/0/0 {
+        unit 0 {
+            description "ISIS -- 7206VXR fa1/0";
+            family inet { address 10.0.0.2/30; }
+            family iso;
+        }
+    }
+}
+
+routing-options {
+    router-id 172.16.254.1;
+    autonomous-system 65001;
+}
+
+protocols {
+    isis {
+        interface lo0.0 { passive; }
+        interface ge-0/0/0.0 {
+            point-to-point;
+            level 1 disable;
+        }
+        level 1 disable;
+        export [ ISIS-EXPORT ];
+    }
+    bgp {
+        group INTERNAL {
+            type internal;
+            local-address 172.16.254.1;
+            cluster 172.16.254.1;
+            family inet {
+                unicast;
+            }
+            neighbor 172.16.10.1 { description PE1; }
+            neighbor 172.16.10.2 { description PE2; }
+            neighbor 172.16.10.3 { description PE3; }
+            neighbor 172.16.254.2 { description "RR2 (inter-RR)"; cluster-id 0.0.0.0; }
+        }
+    }
+    lldp {
+        interface all;
+    }
+}
+
+snmp {
+    community public {
+        authorization read-only;
+    }
+}
+
+security {
+    forwarding-options {
+        family iso { mode packet-based; }
+        family inet6 { mode packet-based; }
+    }
+    zones {
+        security-zone trust {
+            host-inbound-traffic {
+                system-services { ssh; telnet; ping; }
+                protocols { bgp; }
+            }
+            interfaces {
+                ge-0/0/0.0;
+                lo0.0;
+            }
+        }
+    }
+}
+
+policy-options {
+    policy-statement ISIS-EXPORT {
+        term loopback {
+            from { protocol direct; interface lo0.0; }
+            then accept;
+        }
+    }
+}

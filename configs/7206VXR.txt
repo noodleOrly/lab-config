@@ -1,0 +1,75 @@
+! ============================================================
+! 7206VXR - Lab Gateway
+! Role : ISIS L2 router, connects management LAN to RR/PE domains
+! ============================================================
+
+hostname 7206VXR
+no ip domain-lookup
+!
+enable secret 0 lab
+!
+cdp run
+! NOTE: lldp not supported on this c7200 IOS image (15.2(4)S2 advanced enterprise)
+!
+! -- Loopback
+interface Loopback0
+ description ROUTER-ID
+ ip address 172.16.254.254 255.255.255.255
+ ip router isis LAB
+!
+! -- Management (physical LAN)
+interface FastEthernet0/0
+ description MGMT -- 10.2.0.0/24
+ ip address 10.2.0.116 255.255.255.0
+ no shutdown
+!
+! -- ISIS link to RR1
+interface FastEthernet1/0
+ description ISIS -- RR1 ge-0/0/0
+ ip address 10.0.0.1 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+! -- ISIS link to RR2
+interface FastEthernet2/0
+ description ISIS -- RR2 ge-0/0/0
+ ip address 10.0.0.5 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+! -- Transit to PE ring via PE5
+interface FastEthernet3/0
+ description ISIS -- PE5 fa3/0 (ring transit)
+ ip address 10.0.0.9 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+router isis LAB
+ net 49.0001.0000.AC10.FEFE.00
+ is-type level-2-only
+ metric-style wide
+ passive-interface Loopback0
+ passive-interface FastEthernet0/0
+!
+! -- Default route toward management gateway
+ip route 0.0.0.0 0.0.0.0 10.2.0.1
+!
+snmp-server community public RO
+snmp-server location EVE-NG Lab
+!
+logging host 10.2.0.114
+logging trap informational
+logging facility local6
+service timestamps log datetime msec localtime
+!
+line con 0
+ privilege level 15
+ logging synchronous
+line vty 0 4
+ login
+ password lab
+!
+end

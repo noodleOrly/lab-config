@@ -1,0 +1,93 @@
+! ============================================================
+! PE3 - Cisco c7200 PE Router
+! Loopback: 172.16.10.3/32
+! RR clients: RR1 (172.16.254.1) AND RR2 (172.16.254.2) - dual homed
+! ============================================================
+
+hostname PE3
+no ip domain-lookup
+!
+enable secret 0 lab
+!
+cdp run
+! NOTE: lldp not supported on this c7200 IOS image (15.2(4)S2 advanced enterprise)
+!
+interface Loopback0
+ description ROUTER-ID
+ ip address 172.16.10.3 255.255.255.255
+ ip router isis LAB
+!
+interface FastEthernet0/0
+ description ISIS -- PE2 fa1/0
+ ip address 10.0.1.6 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+interface FastEthernet1/0
+ description ISIS -- PE4 fa0/0
+ ip address 10.0.1.9 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+interface FastEthernet2/0
+ description ISIS -- PE1 fa2/0 (cross)
+ ip address 10.0.1.22 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+interface FastEthernet3/0
+ description ISIS -- CPE3 eth1
+ ip address 10.0.2.9 255.255.255.252
+ ip router isis LAB
+ isis network point-to-point
+ no shutdown
+!
+ip route 172.16.20.3 255.255.255.255 10.0.2.10
+!
+router isis LAB
+ net 49.0001.0000.AC10.0A03.00
+ is-type level-2-only
+ metric-style wide
+ passive-interface Loopback0
+ redistribute static metric 20 metric-type external level-2
+!
+router bgp 65001
+ bgp router-id 172.16.10.3
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ !
+ neighbor 172.16.254.1 remote-as 65001
+ neighbor 172.16.254.1 description RR1
+ neighbor 172.16.254.1 update-source Loopback0
+ !
+ neighbor 172.16.254.2 remote-as 65001
+ neighbor 172.16.254.2 description RR2
+ neighbor 172.16.254.2 update-source Loopback0
+ !
+ address-family ipv4
+  network 172.16.10.3 mask 255.255.255.255
+  neighbor 172.16.254.1 activate
+  neighbor 172.16.254.1 next-hop-self
+  neighbor 172.16.254.2 activate
+  neighbor 172.16.254.2 next-hop-self
+ exit-address-family
+!
+snmp-server community public RO
+snmp-server location EVE-NG Lab
+!
+logging host 10.2.0.114
+logging trap informational
+logging facility local6
+service timestamps log datetime msec localtime
+!
+line con 0
+ privilege level 15
+ logging synchronous
+line vty 0 4
+ login
+ password lab
+!
+end

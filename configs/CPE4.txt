@@ -1,0 +1,42 @@
+# ============================================================
+# CPE4 - MikroTik CHR 7.7
+# Loopback: 172.16.20.4/32
+# Uplink: ether1 -> PE4 fa3/0 (10.0.2.12/30)
+# Note: IS-IS not available in base RouterOS package;
+#       loopback is redistributed into IS-IS as static on PE4.
+# ============================================================
+
+/interface bridge
+add name=lo comment="Loopback"
+
+/ip address
+add address=172.16.20.4/32 interface=lo comment="Loopback"
+add address=10.0.2.14/30   interface=ether1 comment="Uplink to PE4"
+
+/ip route
+add dst-address=0.0.0.0/0 gateway=10.0.2.13 comment="Default via PE4"
+
+/system logging action
+add name=remote target=remote remote=10.2.0.114 remote-port=514
+
+/system logging
+add action=remote topics=info
+add action=remote topics=warning
+add action=remote topics=error
+add action=remote topics=critical
+
+/snmp
+set enabled=yes
+
+/snmp community
+set [ find default=yes ] name=public read-access=yes
+
+/ip neighbor discovery-settings
+set protocol=cdp,lldp,mndp
+
+/user
+set [find name=admin] password=lab123
+
+/ip service
+set telnet disabled=no
+set ssh    disabled=no
