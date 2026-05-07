@@ -1,24 +1,45 @@
 # lab-config — Claude Code Project Context
 
-Source-of-truth configs and deploy tooling for a 13-node EVE-NG lab (`IRIS_BGP_ISIS_Lab.unl`).
+Source-of-truth configs and deploy tooling for an 18-node EVE-NG lab (`IRIS_BGP_ISIS_Lab.unl`).
 Edit `configs/*.txt` here, sync to the EVE-NG host, optionally live-apply or wipe-and-reload.
 
 ## Topology
 
-13 nodes, three platform families:
+18 nodes, four platform families:
 
 | Role | Devices | Platform | Image |
 |---|---|---|---|
-| Gateway | 7206VXR | Cisco c7200 (dynamips) | IOS 15.2(4)S2 adv-ent |
-| PE | PE1-5 | Cisco c7200 (dynamips) | same |
-| CPE | CPE1-5 | MikroTik CHR (qemu) | RouterOS 7.7 |
+| Gateway / PE for FreeBSD | 7206VXR | Cisco c7200 (dynamips) | IOS 15.2(4)S2 adv-ent |
+| PE / P | PE1-5 | Cisco c7200 (dynamips) | same |
+| MikroTik CPE | CPE1-5 | MikroTik CHR (qemu) | RouterOS 7.7 |
+| Cisco CE for VRF | ACDC, SWANS, SEPULTURA, NIN | Cisco c7200 (dynamips) | same |
 | Route reflector | RR1, RR2 | Juniper vSRX-NG (qemu) | Junos 22.2R1 |
+| Customer host | freebsd13 | FreeBSD 13.5 (qemu) | RELEASE-amd64 cloud image |
 
-- ISIS area `49.0001`, level-2-only, metric-style wide
-- iBGP AS 65001; RR1 reflects to PE1/PE2/PE3, RR2 reflects to PE3/PE4/PE5 (PE3 dual-homed); RRs cluster-peer through 7206VXR
-- Loopbacks: PEs `172.16.10.{1..5}/32`, CPEs `172.16.20.{1..5}/32` (statically redistributed by their PE — RouterOS base has no IS-IS), RRs `172.16.254.{1,2}/32`, 7206VXR `172.16.254.254/32`
-- Interconnects: ISIS /30s on `10.0.0.0/24`, PE↔CPE /30s on `10.0.2.0/24`
+- ISIS area `49.0001`, level-2-only, metric-style wide. New CE NETs: `49.0001.0000.AC10.150X.00` (X = 1..4)
+- iBGP AS 65001; RR1 reflects to PE1/PE2/PE3 + 7206VXR, RR2 reflects to PE3/PE4/PE5 + 7206VXR (PE3 and 7206VXR dual-homed); RR1 ↔ RR2 cluster-peer through 7206VXR
+- BGP families: `ipv4-unicast` (existing) **and** `vpnv4-unicast` (LAB-2). RRs reflect both to all clients except the MikroTik CPEs.
+- MPLS LDP on every IS-IS interface in the Cisco core (7206VXR, PE1-5, plus the 4 new Cisco CEs). LDP router-id from `Loopback0`.
+- Loopbacks:
+  - PEs `172.16.10.{1..5}/32`, MikroTik CPEs `172.16.20.{1..5}/32` (statically redistributed by their PE — RouterOS base has no IS-IS)
+  - RRs `172.16.254.{1,2}/32`, 7206VXR `172.16.254.254/32`
+  - **New CEs `172.16.21.{1..4}/32`** (in IS-IS via direct adjacency to PE4); each CE also has `Loopback100 192.168.100.1/24` not in IS-IS, only reachable through the matching VRF
+- Interconnects: core ISIS /30s on `10.0.0.0/24` and `10.0.1.0/24`, PE↔MikroTik-CPE /30s on `10.0.2.0/24`. **New PE4↔CE links use `10.0.21.0/24` (global VLAN 10) and `10.0.22.0/24` (per-VRF VLAN 20).**
+- 7206VXR ↔ FreeBSD trunk (fa4/0): VLANs 1803/1804/1805/1806 carry `100.112.1.0/28` (one /30 per VRF)
 - All nodes ship syslog to `10.2.0.114` and SNMP community `public RO`
+
+### MPLS L3VPN customer mapping (LAB-2)
+
+| Customer | VLAN (FreeBSD↔7206VXR) | RD / RT | 7206VXR sub-int | FreeBSD FIB | PE4 ↔ CE physical | CE Lo0 | CE Lo100 |
+|---|---|---|---|---|---|---|---|
+| ACDC | 1803 | 65001:1803 | fa4/0.1803 (100.112.1.1/30) | 2 | fa4/0 ↔ ACDC fa0/0 | 172.16.21.1 | 192.168.100.1/24 |
+| SWANS | 1804 | 65001:1804 | fa4/0.1804 (100.112.1.5/30) | 3 | fa4/1 ↔ SWANS fa0/0 | 172.16.21.2 | 192.168.100.1/24 |
+| SEPULTURA | 1805 | 65001:1805 | fa4/0.1805 (100.112.1.9/30) | 4 | fa5/0 ↔ SEPULTURA fa0/0 | 172.16.21.3 | 192.168.100.1/24 |
+| NIN | 1806 | 65001:1806 | fa4/0.1806 (100.112.1.13/30) | 5 | fa5/1 ↔ NIN fa0/0 | 172.16.21.4 | 192.168.100.1/24 |
+
+Each PE4↔CE link is a single physical port carrying 802.1Q with two sub-interfaces:
+- **VLAN 10 (global)**: `10.0.21.X/30`, IS-IS adjacency, MPLS LDP — carries CE `Lo0` advertisement and label distribution.
+- **VLAN 20 (per-VRF)**: `10.0.22.X/30`, no IGP — carries customer traffic; PE4 has a per-VRF static `192.168.100.0/24 → 10.0.22.X+1`. CE has a global default `0.0.0.0/0 → 10.0.22.X` so reply traffic to 100.112.1.0/28 (FreeBSD) leaves via the VRF path.
 
 ## Hosts and access
 
@@ -46,19 +67,22 @@ GitHub access from this Mac uses SSH-over-443 (port 22 is firewalled). Remote UR
 
 | ID | Name | Port | ID | Name | Port |
 |---|---|---|---|---|---|
-| 1 | 7206VXR | 32769 | 8 | PE5 | 32776 |
-| 2 | RR1 | 32770 | 9 | CPE1 | 32777 |
-| 3 | RR2 | 32771 | 10 | CPE2 | 32778 |
-| 4 | PE1 | 32772 | 11 | CPE3 | 32779 |
-| 5 | PE2 | 32773 | 12 | CPE4 | 32780 |
-| 6 | PE3 | 32774 | 13 | CPE5 | 32781 |
-| 7 | PE4 | 32775 | | | |
+| 1 | 7206VXR | 32769 | 10 | CPE2 | 32778 |
+| 2 | RR1 | 32770 | 11 | CPE3 | 32779 |
+| 3 | RR2 | 32771 | 12 | CPE4 | 32780 |
+| 4 | PE1 | 32772 | 13 | CPE5 | 32781 |
+| 5 | PE2 | 32773 | 14 | ACDC | 32782 |
+| 6 | PE3 | 32774 | 15 | SWANS | 32783 |
+| 7 | PE4 | 32775 | 16 | SEPULTURA | 32784 |
+| 8 | PE5 | 32776 | 17 | NIN | 32785 |
+| 9 | CPE1 | 32777 | 18 | freebsd13 | 32786 |
 
 ## Credentials (lab-only)
 
 - Cisco IOS: enable secret `lab`, vty `lab`, console at priv 15
 - MikroTik: `admin / lab123`
 - Junos: `admin / lab123` (and `root / lab123` after first commit) — stored as `encrypted-password "$6$junoslab$..."`
+- FreeBSD: `root / lab123` over SSH or console, password auth allowed (lab-only)
 
 ## Deploy workflow
 
@@ -99,6 +123,13 @@ Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other l
 ### MikroTik CHR
 - CDP/LLDP/MNDP via `/ip neighbor discovery-settings set protocol=cdp,lldp,mndp`. Default interface list (all non-dynamic) is fine.
 - No IS-IS in base package — loopbacks are statically redistributed by the connected PE.
+
+### FreeBSD 13.5 (qemu)
+- Uses `e1000-82545em` NICs (overridden in `.unl` per-node so interfaces are `em0`/`em1`, not `vtnet*` from the global template).
+- `/boot/loader.conf` must set `net.fibs="6"` so FIBs 2..5 (one per customer VRF) exist; default is 1.
+- `/boot/loader.conf` also enables serial console (`boot_multicons="YES"`, `console="comconsole,vidconsole"`) so EVE-NG console-port automation works.
+- Per-FIB default routes (`route_vlan1803default="default 100.112.1.1 -fib 2"` etc.) are how customer-bound traffic is steered to the right VRF; `setfib N` is how you choose at runtime.
+- Image is **not** auto-injected by `sync_eve_configs.py`. Use `scripts/freebsd_inject.sh` (or first-boot console session) to apply `/etc/rc.conf`, `/boot/loader.conf`, etc., into the qcow2.
 
 ## Known caveats
 - LLDP has no neighbours in the lab today: the only LLDP-capable speakers (RRs, CPEs) aren't directly connected — they go through c7200 PEs which lack LLDP and don't relay it.
