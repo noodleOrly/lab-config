@@ -26,7 +26,10 @@ system {
     syslog {
         user * { any emergency; }
         file messages { any notice; authorization info; }
-        host 10.2.0.114 { any info; }
+        host 10.2.0.114 {
+            any info;
+            source-address 172.16.254.2;
+        }
     }
 }
 
@@ -50,6 +53,11 @@ interfaces {
 routing-options {
     router-id 172.16.254.2;
     autonomous-system 65001;
+    resolution {
+        rib bgp.l3vpn.0 {
+            resolution-ribs inet.0;
+        }
+    }
 }
 
 snmp {
@@ -66,7 +74,7 @@ security {
     zones {
         security-zone trust {
             host-inbound-traffic {
-                system-services { ssh; telnet; ping; }
+                system-services { ssh; telnet; ping; snmp; }
                 protocols { bgp; }
             }
             interfaces {
@@ -104,12 +112,17 @@ protocols {
             type internal;
             local-address 172.16.254.2;
             cluster 172.16.254.2;
+            keep all;
             family inet {
+                unicast;
+            }
+            family inet-vpn {
                 unicast;
             }
             neighbor 172.16.10.3 { description PE3; }
             neighbor 172.16.10.4 { description PE4; }
             neighbor 172.16.10.5 { description PE5; }
+            neighbor 172.16.254.254 { description "7206VXR (PE for FreeBSD)"; }
             neighbor 172.16.254.1 { description "RR1 (inter-RR)"; cluster-id 0.0.0.0; }
         }
     }

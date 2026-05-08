@@ -6,41 +6,58 @@
 
 hostname PE3
 no ip domain-lookup
+ip cef
+mpls label protocol ldp
 !
 enable secret 0 lab
 !
 cdp run
 ! NOTE: lldp not supported on this c7200 IOS image (15.2(4)S2 advanced enterprise)
 !
+! -- Syslog source + NetFlow v9 (LAB-2 telemetry)
+logging source-interface Loopback0
+ip flow-export version 9
+ip flow-export source Loopback0
+ip flow-export destination 10.2.0.114 9996
+ip flow-cache timeout active 1
+!
 interface Loopback0
  description ROUTER-ID
  ip address 172.16.10.3 255.255.255.255
+ ip flow ingress
  ip router isis LAB
 !
 interface FastEthernet0/0
  description ISIS -- PE2 fa1/0
  ip address 10.0.1.6 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet1/0
  description ISIS -- PE4 fa0/0
  ip address 10.0.1.9 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet2/0
  description ISIS -- PE1 fa2/0 (cross)
  ip address 10.0.1.22 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
 interface FastEthernet3/0
  description ISIS -- CPE3 eth1
  ip address 10.0.2.9 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
  no shutdown
@@ -53,6 +70,8 @@ router isis LAB
  metric-style wide
  passive-interface Loopback0
  redistribute static metric 20 metric-type external level-2
+!
+mpls ldp router-id Loopback0 force
 !
 router bgp 65001
  bgp router-id 172.16.10.3

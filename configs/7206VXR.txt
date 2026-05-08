@@ -1,51 +1,132 @@
 ! ============================================================
-! 7206VXR - Lab Gateway
-! Role : ISIS L2 router, connects management LAN to RR/PE domains
+! 7206VXR - Lab Gateway + L3VPN PE for FreeBSD CE
+! Role : ISIS L2 router, MPLS LDP, VPNv4 PE for 4 customer VRFs
+!        connected via 802.1Q trunk to FreeBSD (one VLAN per VRF)
 ! ============================================================
 
 hostname 7206VXR
 no ip domain-lookup
+ip cef
+mpls label protocol ldp
 !
 enable secret 0 lab
 !
 cdp run
 ! NOTE: lldp not supported on this c7200 IOS image (15.2(4)S2 advanced enterprise)
 !
-! -- Loopback
+! -- Syslog source + NetFlow v9 (LAB-2 telemetry)
+logging source-interface Loopback0
+ip flow-export version 9
+ip flow-export source Loopback0
+ip flow-export destination 10.2.0.114 9996
+ip flow-cache timeout active 1
+!
+! -- VRF definitions (one per customer)
+vrf definition ACDC
+ rd 65001:1803
+ address-family ipv4
+  route-target export 65001:1803
+  route-target import 65001:1803
+ exit-address-family
+!
+vrf definition SWANS
+ rd 65001:1804
+ address-family ipv4
+  route-target export 65001:1804
+  route-target import 65001:1804
+ exit-address-family
+!
+vrf definition SEPULTURA
+ rd 65001:1805
+ address-family ipv4
+  route-target export 65001:1805
+  route-target import 65001:1805
+ exit-address-family
+!
+vrf definition NIN
+ rd 65001:1806
+ address-family ipv4
+  route-target export 65001:1806
+  route-target import 65001:1806
+ exit-address-family
+!
+! -- Loopback (also MPLS LDP router-id)
 interface Loopback0
  description ROUTER-ID
  ip address 172.16.254.254 255.255.255.255
+ ip flow ingress
  ip router isis LAB
 !
 ! -- Management (physical LAN)
 interface FastEthernet0/0
  description MGMT -- 10.2.0.0/24
  ip address 10.2.0.116 255.255.255.0
+ ip flow ingress
  no shutdown
 !
-! -- ISIS link to RR1
+! -- ISIS link to RR1 (+ MPLS LDP)
 interface FastEthernet1/0
  description ISIS -- RR1 ge-0/0/0
  ip address 10.0.0.1 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
-! -- ISIS link to RR2
+! -- ISIS link to RR2 (+ MPLS LDP)
 interface FastEthernet2/0
  description ISIS -- RR2 ge-0/0/0
  ip address 10.0.0.5 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
 !
-! -- Transit to PE ring via PE5
+! -- Transit to PE ring via PE5 (+ MPLS LDP)
 interface FastEthernet3/0
  description ISIS -- PE5 fa3/0 (ring transit)
  ip address 10.0.0.9 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
+ mpls ip
  no shutdown
+!
+! -- Trunk to FreeBSD CE (4 customer VLANs, one per VRF)
+interface FastEthernet4/0
+ description TRUNK -- FreeBSD em1 (vlans 1803-1806)
+ no ip address
+ no shutdown
+!
+interface FastEthernet4/0.1803
+ description CE-LINK -- VRF ACDC -- FreeBSD vlan1803
+ encapsulation dot1Q 1803
+ vrf forwarding ACDC
+ ip address 100.112.1.1 255.255.255.252
+ ip flow ingress
+!
+interface FastEthernet4/0.1804
+ description CE-LINK -- VRF SWANS -- FreeBSD vlan1804
+ encapsulation dot1Q 1804
+ vrf forwarding SWANS
+ ip address 100.112.1.5 255.255.255.252
+ ip flow ingress
+!
+interface FastEthernet4/0.1805
+ description CE-LINK -- VRF SEPULTURA -- FreeBSD vlan1805
+ encapsulation dot1Q 1805
+ vrf forwarding SEPULTURA
+ ip address 100.112.1.9 255.255.255.252
+ ip flow ingress
+!
+interface FastEthernet4/0.1806
+ description CE-LINK -- VRF NIN -- FreeBSD vlan1806
+ encapsulation dot1Q 1806
+ vrf forwarding NIN
+ ip address 100.112.1.13 255.255.255.252
+ ip flow ingress
 !
 router isis LAB
  net 49.0001.0000.AC10.FEFE.00
@@ -53,6 +134,41 @@ router isis LAB
  metric-style wide
  passive-interface Loopback0
  passive-interface FastEthernet0/0
+!
+! -- LDP uses Loopback0 as router-id
+mpls ldp router-id Loopback0 force
+!
+router bgp 65001
+ bgp router-id 172.16.254.254
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+ !
+ neighbor 172.16.254.1 remote-as 65001
+ neighbor 172.16.254.1 description RR1
+ neighbor 172.16.254.1 update-source Loopback0
+ neighbor 172.16.254.2 remote-as 65001
+ neighbor 172.16.254.2 description RR2
+ neighbor 172.16.254.2 update-source Loopback0
+ !
+ address-family vpnv4
+  neighbor 172.16.254.1 activate
+  neighbor 172.16.254.1 send-community both
+  neighbor 172.16.254.2 activate
+  neighbor 172.16.254.2 send-community both
+ exit-address-family
+ !
+ address-family ipv4 vrf ACDC
+  redistribute connected
+ exit-address-family
+ address-family ipv4 vrf SWANS
+  redistribute connected
+ exit-address-family
+ address-family ipv4 vrf SEPULTURA
+  redistribute connected
+ exit-address-family
+ address-family ipv4 vrf NIN
+  redistribute connected
+ exit-address-family
 !
 ! -- Default route toward management gateway
 ip route 0.0.0.0 0.0.0.0 10.2.0.1

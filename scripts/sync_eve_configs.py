@@ -21,6 +21,11 @@ NODES = [
     (11, "CPE3.txt"),
     (12, "CPE4.txt"),
     (13, "CPE5.txt"),
+    (14, "ACDC.txt"),
+    (15, "SWANS.txt"),
+    (16, "SEPULTURA.txt"),
+    (17, "NIN.txt"),
+    # node 18 is FreeBSD: not auto-injected, customised via scripts/freebsd_inject.sh
 ]
 
 # 1) Update each tmp/<id>/startup-config
