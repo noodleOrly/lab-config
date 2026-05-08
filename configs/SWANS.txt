@@ -16,14 +16,23 @@ enable secret 0 lab
 !
 cdp run
 !
+! -- Syslog source + NetFlow v9 (LAB-2 telemetry)
+logging source-interface Loopback0
+ip flow-export version 9
+ip flow-export source Loopback0
+ip flow-export destination 10.2.0.114 9996
+ip flow-cache timeout active 1
+!
 interface Loopback0
  description ROUTER-ID
  ip address 172.16.21.2 255.255.255.255
+ ip flow ingress
  ip router isis LAB
 !
 interface Loopback100
  description CUSTOMER-LOCAL
  ip address 192.168.100.1 255.255.255.0
+ ip flow ingress
 !
 interface FastEthernet0/0
  description TRUNK -- PE4 fa4/1 (vlan10=global, vlan20=VRF SWANS)
@@ -34,6 +43,7 @@ interface FastEthernet0/0.10
  description CORE -- PE4 fa4/1.10 (global IS-IS+MPLS)
  encapsulation dot1Q 10
  ip address 10.0.21.6 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
  mpls ip
@@ -42,6 +52,7 @@ interface FastEthernet0/0.20
  description CE -- PE4 fa4/1.20 (VRF SWANS customer side)
  encapsulation dot1Q 20
  ip address 10.0.22.6 255.255.255.252
+ ip flow ingress
 !
 ip route 0.0.0.0 0.0.0.0 10.0.22.5
 !

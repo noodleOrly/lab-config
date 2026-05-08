@@ -26,7 +26,10 @@ system {
     syslog {
         user * { any emergency; }
         file messages { any notice; authorization info; }
-        host 10.2.0.114 { any info; }
+        host 10.2.0.114 {
+            any info;
+            source-address 172.16.254.1;
+        }
     }
 }
 
@@ -105,7 +108,7 @@ security {
     zones {
         security-zone trust {
             host-inbound-traffic {
-                system-services { ssh; telnet; ping; }
+                system-services { ssh; telnet; ping; snmp; }
                 protocols { bgp; }
             }
             interfaces {

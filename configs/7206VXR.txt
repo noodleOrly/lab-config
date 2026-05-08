@@ -14,6 +14,13 @@ enable secret 0 lab
 cdp run
 ! NOTE: lldp not supported on this c7200 IOS image (15.2(4)S2 advanced enterprise)
 !
+! -- Syslog source + NetFlow v9 (LAB-2 telemetry)
+logging source-interface Loopback0
+ip flow-export version 9
+ip flow-export source Loopback0
+ip flow-export destination 10.2.0.114 9996
+ip flow-cache timeout active 1
+!
 ! -- VRF definitions (one per customer)
 vrf definition ACDC
  rd 65001:1803
@@ -47,18 +54,21 @@ vrf definition NIN
 interface Loopback0
  description ROUTER-ID
  ip address 172.16.254.254 255.255.255.255
+ ip flow ingress
  ip router isis LAB
 !
 ! -- Management (physical LAN)
 interface FastEthernet0/0
  description MGMT -- 10.2.0.0/24
  ip address 10.2.0.116 255.255.255.0
+ ip flow ingress
  no shutdown
 !
 ! -- ISIS link to RR1 (+ MPLS LDP)
 interface FastEthernet1/0
  description ISIS -- RR1 ge-0/0/0
  ip address 10.0.0.1 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
  mpls ip
@@ -68,6 +78,7 @@ interface FastEthernet1/0
 interface FastEthernet2/0
  description ISIS -- RR2 ge-0/0/0
  ip address 10.0.0.5 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
  mpls ip
@@ -77,6 +88,7 @@ interface FastEthernet2/0
 interface FastEthernet3/0
  description ISIS -- PE5 fa3/0 (ring transit)
  ip address 10.0.0.9 255.255.255.252
+ ip flow ingress
  ip router isis LAB
  isis network point-to-point
  mpls ip
@@ -93,24 +105,28 @@ interface FastEthernet4/0.1803
  encapsulation dot1Q 1803
  vrf forwarding ACDC
  ip address 100.112.1.1 255.255.255.252
+ ip flow ingress
 !
 interface FastEthernet4/0.1804
  description CE-LINK -- VRF SWANS -- FreeBSD vlan1804
  encapsulation dot1Q 1804
  vrf forwarding SWANS
  ip address 100.112.1.5 255.255.255.252
+ ip flow ingress
 !
 interface FastEthernet4/0.1805
  description CE-LINK -- VRF SEPULTURA -- FreeBSD vlan1805
  encapsulation dot1Q 1805
  vrf forwarding SEPULTURA
  ip address 100.112.1.9 255.255.255.252
+ ip flow ingress
 !
 interface FastEthernet4/0.1806
  description CE-LINK -- VRF NIN -- FreeBSD vlan1806
  encapsulation dot1Q 1806
  vrf forwarding NIN
  ip address 100.112.1.13 255.255.255.252
+ ip flow ingress
 !
 router isis LAB
  net 49.0001.0000.AC10.FEFE.00
