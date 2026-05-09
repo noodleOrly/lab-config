@@ -11,7 +11,8 @@ SRCDIR=/tmp/lab-configs/configs
 CISCO=(  "1:7206VXR" "4:PE1" "5:PE2" "6:PE3" "7:PE4" "8:PE5"
          "14:ACDC" "15:SWANS" "16:SEPULTURA" "17:NIN" )
 JUNOS=(  "2:RR1" "3:RR2" )
-MTIK=(   "9:CPE1" "10:CPE2" "11:CPE3" "12:CPE4" "13:CPE5" )
+MTIK=(   "9:CPE1" "10:CPE2" "11:CPE3" "12:CPE4" "13:CPE5"
+         "19:ACDC_SITE_A" "20:ACDC_SITE_B" "21:SWANS_SITE_A" "22:SWANS_SITE_B" )
 # FreeBSD (id 18) is intentionally NOT wiped here -- it would erase the
 # customised qcow2. To reset it, restage the image and re-run freebsd_inject.sh.
 FREEBSD=( "18:freebsd13" )
@@ -69,4 +70,4 @@ for entry in "${CISCO[@]}" "${JUNOS[@]}" "${MTIK[@]}" "${FREEBSD[@]}"; do
 done
 
 echo
-echo "All 18 nodes started. Cisco/MikroTik converge in ~2 min, Junos ~6 min for cloud-init commit, FreeBSD ~1 min."
+echo "All 22 nodes started. Cisco/MikroTik converge in ~2 min, Junos ~6 min for cloud-init commit, FreeBSD ~1 min."

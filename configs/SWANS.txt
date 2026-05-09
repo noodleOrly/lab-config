@@ -5,6 +5,8 @@
 ! Uplink: fa0/0 trunk to PE4 fa4/1
 !   .10  global IS-IS+MPLS link    -- 10.0.21.4/30
 !   .20  customer (PE4 VRF SWANS)  -- 10.0.22.4/30
+! Sites: fa1/0 -> SWANS_SITE_A (10.101.0.0/30, lan 192.168.103.0/24)
+!        fa1/1 -> SWANS_SITE_B (10.101.0.4/30, lan 192.168.104.0/24)
 ! ============================================================
 
 hostname SWANS
@@ -54,7 +56,23 @@ interface FastEthernet0/0.20
  ip address 10.0.22.6 255.255.255.252
  ip flow ingress
 !
+interface FastEthernet1/0
+ description CE -- SWANS_SITE_A ether1
+ ip address 10.101.0.1 255.255.255.252
+ ip flow ingress
+ no shutdown
+!
+interface FastEthernet1/1
+ description CE -- SWANS_SITE_B ether1
+ ip address 10.101.0.5 255.255.255.252
+ ip flow ingress
+ no shutdown
+!
 ip route 0.0.0.0 0.0.0.0 10.0.22.5
+!
+! Static routes to the site LANs reachable through each branch router.
+ip route 192.168.103.0 255.255.255.0 10.101.0.2
+ip route 192.168.104.0 255.255.255.0 10.101.0.6
 !
 router isis LAB
  net 49.0001.0000.AC10.1502.00

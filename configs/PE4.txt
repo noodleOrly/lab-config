@@ -194,6 +194,18 @@ ip route vrf SWANS 192.168.100.0 255.255.255.0 10.0.22.6
 ip route vrf SEPULTURA 192.168.100.0 255.255.255.0 10.0.22.10
 ip route vrf NIN 192.168.100.0 255.255.255.0 10.0.22.14
 !
+! -- Per-VRF static: branch-site LANs behind ACDC and SWANS (LAB-3).
+!    Next-hop is the same VLAN20 customer-side link as the Lo100 route.
+ip route vrf ACDC 192.168.101.0 255.255.255.0 10.0.22.2
+ip route vrf ACDC 192.168.102.0 255.255.255.0 10.0.22.2
+ip route vrf SWANS 192.168.103.0 255.255.255.0 10.0.22.6
+ip route vrf SWANS 192.168.104.0 255.255.255.0 10.0.22.6
+!
+! -- Per-VRF static: PE-CE link networks behind ACDC and SWANS, so
+!    customer traceroute through their full L3VPN path resolves.
+ip route vrf ACDC 10.100.0.0 255.255.255.0 10.0.22.2
+ip route vrf SWANS 10.101.0.0 255.255.255.0 10.0.22.6
+!
 router isis LAB
  net 49.0001.0000.AC10.0A04.00
  is-type level-2-only

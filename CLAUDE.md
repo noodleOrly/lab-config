@@ -1,11 +1,11 @@
 # lab-config — Claude Code Project Context
 
-Source-of-truth configs and deploy tooling for an 18-node EVE-NG lab (`IRIS_BGP_ISIS_Lab.unl`).
+Source-of-truth configs and deploy tooling for a 22-node EVE-NG lab (`IRIS_BGP_ISIS_Lab.unl`).
 Edit `configs/*.txt` here, sync to the EVE-NG host, optionally live-apply or wipe-and-reload.
 
 ## Topology
 
-18 nodes, four platform families:
+22 nodes, four platform families:
 
 | Role | Devices | Platform | Image |
 |---|---|---|---|
@@ -13,6 +13,7 @@ Edit `configs/*.txt` here, sync to the EVE-NG host, optionally live-apply or wip
 | PE / P | PE1-5 | Cisco c7200 (dynamips) | same |
 | MikroTik CPE | CPE1-5 | MikroTik CHR (qemu) | RouterOS 7.7 |
 | Cisco CE for VRF | ACDC, SWANS, SEPULTURA, NIN | Cisco c7200 (dynamips) | same |
+| Customer branch site | ACDC_SITE_A/B, SWANS_SITE_A/B | MikroTik CHR (qemu) | RouterOS 7.7 |
 | Route reflector | RR1, RR2 | Juniper vSRX-NG (qemu) | Junos 22.2R1 |
 | Customer host | freebsd13 | FreeBSD 13.5 (qemu) | RELEASE-amd64 cloud image |
 
@@ -41,6 +42,23 @@ Each PE4↔CE link is a single physical port carrying 802.1Q with two sub-interf
 - **VLAN 10 (global)**: `10.0.21.X/30`, IS-IS adjacency, MPLS LDP — carries CE `Lo0` advertisement and label distribution.
 - **VLAN 20 (per-VRF)**: `10.0.22.X/30`, no IGP — carries customer traffic; PE4 has a per-VRF static `192.168.100.0/24 → 10.0.22.X+1`. CE has a global default `0.0.0.0/0 → 10.0.22.X` so reply traffic to 100.112.1.0/28 (FreeBSD) leaves via the VRF path.
 
+### Customer branch sites (LAB-3)
+
+ACDC and SWANS each host two MikroTik CHR sites on a fresh PA-2FE-TX in slot 1 (`fa1/0` + `fa1/1`). The sites are pure CPEs — no MPLS, no IS-IS, just a default route back to the parent CE.
+
+| Site | Parent CE | PE-CE link | Site LAN |
+|---|---|---|---|
+| ACDC_SITE_A | ACDC fa1/0 | 10.100.0.0/30 (.1=ACDC, .2=site) | 192.168.101.0/24 (lo .1) |
+| ACDC_SITE_B | ACDC fa1/1 | 10.100.0.4/30 (.5=ACDC, .6=site) | 192.168.102.0/24 (lo .1) |
+| SWANS_SITE_A | SWANS fa1/0 | 10.101.0.0/30 (.1=SWANS, .2=site) | 192.168.103.0/24 (lo .1) |
+| SWANS_SITE_B | SWANS fa1/1 | 10.101.0.4/30 (.5=SWANS, .6=site) | 192.168.104.0/24 (lo .1) |
+
+Site LANs are reachable from the matching customer VRF on FreeBSD (`setfib 2 ping 192.168.101.1`) via two static routes hop-by-hop:
+- PE4 in VRF: `ip route vrf ACDC 192.168.10X.0/24 10.0.22.2` (next-hop = ACDC's VLAN-20 customer side)
+- ACDC in global: `ip route 192.168.10X.0/24 10.100.0.{2,6}` (next-hop = site's ether1)
+
+Same pattern for SWANS via `10.0.22.6` and `10.101.0.{2,6}`.
+
 ## Hosts and access
 
 | Host | Address | OS | Purpose |
@@ -67,22 +85,24 @@ GitHub access from this Mac uses SSH-over-443 (port 22 is firewalled). Remote UR
 
 | ID | Name | Port | ID | Name | Port |
 |---|---|---|---|---|---|
-| 1 | 7206VXR | 32769 | 10 | CPE2 | 32778 |
-| 2 | RR1 | 32770 | 11 | CPE3 | 32779 |
-| 3 | RR2 | 32771 | 12 | CPE4 | 32780 |
-| 4 | PE1 | 32772 | 13 | CPE5 | 32781 |
-| 5 | PE2 | 32773 | 14 | ACDC | 32782 |
-| 6 | PE3 | 32774 | 15 | SWANS | 32783 |
-| 7 | PE4 | 32775 | 16 | SEPULTURA | 32784 |
-| 8 | PE5 | 32776 | 17 | NIN | 32785 |
-| 9 | CPE1 | 32777 | 18 | freebsd13 | 32786 |
+| 1 | 7206VXR | 32769 | 12 | CPE4 | 32780 |
+| 2 | RR1 | 32770 | 13 | CPE5 | 32781 |
+| 3 | RR2 | 32771 | 14 | ACDC | 32782 |
+| 4 | PE1 | 32772 | 15 | SWANS | 32783 |
+| 5 | PE2 | 32773 | 16 | SEPULTURA | 32784 |
+| 6 | PE3 | 32774 | 17 | NIN | 32785 |
+| 7 | PE4 | 32775 | 18 | freebsd13 | 32786 |
+| 8 | PE5 | 32776 | 19 | ACDC_SITE_A | 32787 |
+| 9 | CPE1 | 32777 | 20 | ACDC_SITE_B | 32788 |
+| 10 | CPE2 | 32778 | 21 | SWANS_SITE_A | 32789 |
+| 11 | CPE3 | 32779 | 22 | SWANS_SITE_B | 32790 |
 
 ## Credentials (lab-only)
 
 - Cisco IOS: enable secret `lab`, vty `lab`, console at priv 15
 - MikroTik: `admin / lab123`
 - Junos: `admin / lab123` (and `root / lab123` after first commit) — stored as `encrypted-password "$6$junoslab$..."`
-- FreeBSD: `root / lab123` over SSH or console, password auth allowed (lab-only)
+- FreeBSD: `root / lab123` is the lab-default. The running host has been renamed to `dev-mario-vpoll-01.cornelissen.co.za` and re-keyed for routine SSH access — use `ssh -i ~/.ssh/id_vpoller iris@10.2.0.139` (this is the path `scripts/lab3_verify.sh` uses).
 
 ## Deploy workflow
 
