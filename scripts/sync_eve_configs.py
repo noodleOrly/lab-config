@@ -26,6 +26,10 @@ NODES = [
     (16, "SEPULTURA.txt"),
     (17, "NIN.txt"),
     # node 18 is FreeBSD: not auto-injected, customised via scripts/freebsd_inject.sh
+    (19, "ACDC_SITE_A.txt"),
+    (20, "ACDC_SITE_B.txt"),
+    (21, "SWANS_SITE_A.txt"),
+    (22, "SWANS_SITE_B.txt"),
 ]
 
 # 1) Update each tmp/<id>/startup-config

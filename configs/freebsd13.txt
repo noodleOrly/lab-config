@@ -27,6 +27,14 @@ ifconfig_em0="DHCP"
 # em1: 802.1Q trunk to 7206VXR fa4/0 (vlans 1803-1806, one per VRF)
 ifconfig_em1="up"
 
+# Pre-create the four VLAN sub-interfaces; without this line the
+# `ifconfig_vlanXXXX` stanzas below sit unused and no vlan device is built.
+cloned_interfaces="vlan1803 vlan1804 vlan1805 vlan1806"
+
+# Tell /etc/rc.d/routing which `route_*` entries to install at boot.
+# Without this, the route_vlan*/route_vlan*default values are ignored.
+static_routes="vlan1803 vlan1803default vlan1804 vlan1804default vlan1805 vlan1805default vlan1806 vlan1806default"
+
 # ACDC -- vlan1803 -> VRF ACDC (FIB 2) -> 7206VXR 100.112.1.1
 ifconfig_vlan1803="100.112.1.2/30 vlan 1803 vlandev em1"
 route_vlan1803="100.112.1.0/30 -iface vlan1803 -fib 2"

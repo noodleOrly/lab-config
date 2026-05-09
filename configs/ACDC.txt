@@ -5,6 +5,8 @@
 ! Uplink: fa0/0 trunk to PE4 fa4/0
 !   .10  global IS-IS+MPLS link    -- 10.0.21.0/30
 !   .20  customer (PE4 VRF ACDC)   -- 10.0.22.0/30
+! Sites: fa1/0 -> ACDC_SITE_A (10.100.0.0/30, lan 192.168.101.0/24)
+!        fa1/1 -> ACDC_SITE_B (10.100.0.4/30, lan 192.168.102.0/24)
 ! ============================================================
 
 hostname ACDC
@@ -55,9 +57,25 @@ interface FastEthernet0/0.20
  ip address 10.0.22.2 255.255.255.252
  ip flow ingress
 !
+interface FastEthernet1/0
+ description CE -- ACDC_SITE_A ether1
+ ip address 10.100.0.1 255.255.255.252
+ ip flow ingress
+ no shutdown
+!
+interface FastEthernet1/1
+ description CE -- ACDC_SITE_B ether1
+ ip address 10.100.0.5 255.255.255.252
+ ip flow ingress
+ no shutdown
+!
 ! Default route uses the VRF (vlan20) next-hop so customer-bound replies
 ! go through the L3VPN. Global destinations are still reached via IS-IS.
 ip route 0.0.0.0 0.0.0.0 10.0.22.1
+!
+! Static routes to the site LANs reachable through each branch router.
+ip route 192.168.101.0 255.255.255.0 10.100.0.2
+ip route 192.168.102.0 255.255.255.0 10.100.0.6
 !
 router isis LAB
  net 49.0001.0000.AC10.1501.00
