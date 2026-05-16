@@ -255,6 +255,70 @@ router bgp 65001
   redistribute connected
  exit-address-family
 !
+ip sla responder
+!
+! -- IP SLA: core PE mesh probes sourced from PE4 (172.16.10.4)
+ip sla 41
+ icmp-echo 172.16.10.1 source-interface Loopback0
+ description CORE-PE4 - CORE-PE1 ECHO
+ frequency 60
+ip sla schedule 41 life forever start-time now
+!
+ip sla 42
+ icmp-echo 172.16.10.2 source-interface Loopback0
+ description CORE-PE4 - CORE-PE2 ECHO
+ frequency 60
+ip sla schedule 42 life forever start-time now
+!
+ip sla 43
+ icmp-echo 172.16.10.3 source-interface Loopback0
+ description CORE-PE4 - CORE-PE3 ECHO
+ frequency 60
+ip sla schedule 43 life forever start-time now
+!
+ip sla 45
+ icmp-echo 172.16.10.5 source-interface Loopback0
+ description CORE-PE4 - CORE-PE5 ECHO
+ frequency 60
+ip sla schedule 45 life forever start-time now
+!
+ip sla 1041
+ udp-jitter 172.16.10.1 5000 source-ip 172.16.10.4 num-packets 20
+ description CORE-PE4 - CORE-PE1 JITTER
+ frequency 60
+ip sla schedule 1041 life forever start-time now
+!
+ip sla 1042
+ udp-jitter 172.16.10.2 5000 source-ip 172.16.10.4 num-packets 20
+ description CORE-PE4 - CORE-PE2 JITTER
+ frequency 60
+ip sla schedule 1042 life forever start-time now
+!
+ip sla 1043
+ udp-jitter 172.16.10.3 5000 source-ip 172.16.10.4 num-packets 20
+ description CORE-PE4 - CORE-PE3 JITTER
+ frequency 60
+ip sla schedule 1043 life forever start-time now
+!
+ip sla 1045
+ udp-jitter 172.16.10.5 5000 source-ip 172.16.10.4 num-packets 20
+ description CORE-PE4 - CORE-PE5 JITTER
+ frequency 60
+ip sla schedule 1045 life forever start-time now
+!
+! -- IP SLA: customer ACDC probes from PE4
+ip sla 600
+ icmp-echo 172.16.21.1 source-interface Loopback0
+ description CUST-ACDC-PE4 - CUST-ACDC ECHO
+ frequency 60
+ip sla schedule 600 life forever start-time now
+!
+ip sla 1600
+ udp-jitter 172.16.21.1 5000 source-ip 172.16.10.4 num-packets 20
+ description CUST-ACDC-PE4 - CUST-ACDC JITTER
+ frequency 60
+ip sla schedule 1600 life forever start-time now
+!
 snmp-server community public RO
 snmp-server location EVE-NG Lab
 !

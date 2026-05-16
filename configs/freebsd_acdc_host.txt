@@ -1,0 +1,39 @@
+# ============================================================
+# ACDC_HOST - FreeBSD 13.5 host behind ACDC_SITE_A
+# Hangs off ACDC_SITE_A ether2 (bridge lo, 192.168.101.0/24).
+# Reachable from FreeBSD freebsd13 VRF ACDC: setfib 2 ping 192.168.101.100
+# em0 -> 192.168.101.100/24, gw 192.168.101.1 (ACDC_SITE_A)
+# ============================================================
+# @@FILE: sections are written by scripts/acdc_host_inject.sh.
+
+@@FILE: /boot/loader.conf
+boot_multicons="YES"
+boot_serial="YES"
+comconsole_speed="9600"
+console="comconsole,vidconsole"
+
+@@FILE: /etc/rc.conf
+hostname="acdc-host"
+keymap="us.kbd"
+
+ifconfig_em0="192.168.101.100/24"
+defaultrouter="192.168.101.1"
+
+sshd_enable="YES"
+syslogd_enable="YES"
+syslogd_flags="-s -h"
+
+@@FILE: /etc/ssh/sshd_config.d/lab.conf
+PermitRootLogin yes
+PasswordAuthentication yes
+
+@@FILE: /etc/ttys.add
+# Append to /etc/ttys: enable serial console getty on ttyu0
+ttyu0   "/usr/libexec/getty 3wire"      vt100   onifconsole secure
+
+@@FILE: /etc/syslog.conf.add
+# Append to /etc/syslog.conf
+*.notice;authpriv.none;kern.debug;lpr.info;mail.crit;news.err  @10.2.0.114
+
+@@CMD: ROOT_PASSWORD
+echo 'lab123' | pw -V /etc usermod root -h 0

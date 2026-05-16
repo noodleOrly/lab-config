@@ -14,6 +14,7 @@ KEY="${HOME}/.ssh/id_vpoller"
 
 # (fib, target_ip, label)
 TARGETS=(
+    "2:192.168.101.100:ACDC_HOST (FreeBSD behind ACDC_SITE_A)"
     "2:192.168.101.1:ACDC_SITE_A LAN (lo)"
     "2:192.168.102.1:ACDC_SITE_B LAN (lo)"
     "3:192.168.103.1:SWANS_SITE_A LAN (lo)"

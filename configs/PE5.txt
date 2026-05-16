@@ -89,6 +89,70 @@ router bgp 65001
   neighbor 172.16.254.2 next-hop-self
  exit-address-family
 !
+ip sla responder
+!
+! -- IP SLA: core PE mesh probes sourced from PE5 (172.16.10.5)
+ip sla 51
+ icmp-echo 172.16.10.1 source-interface Loopback0
+ description CORE-PE5 - CORE-PE1 ECHO
+ frequency 60
+ip sla schedule 51 life forever start-time now
+!
+ip sla 52
+ icmp-echo 172.16.10.2 source-interface Loopback0
+ description CORE-PE5 - CORE-PE2 ECHO
+ frequency 60
+ip sla schedule 52 life forever start-time now
+!
+ip sla 53
+ icmp-echo 172.16.10.3 source-interface Loopback0
+ description CORE-PE5 - CORE-PE3 ECHO
+ frequency 60
+ip sla schedule 53 life forever start-time now
+!
+ip sla 54
+ icmp-echo 172.16.10.4 source-interface Loopback0
+ description CORE-PE5 - CORE-PE4 ECHO
+ frequency 60
+ip sla schedule 54 life forever start-time now
+!
+ip sla 1051
+ udp-jitter 172.16.10.1 5000 source-ip 172.16.10.5 num-packets 20
+ description CORE-PE5 - CORE-PE1 JITTER
+ frequency 60
+ip sla schedule 1051 life forever start-time now
+!
+ip sla 1052
+ udp-jitter 172.16.10.2 5000 source-ip 172.16.10.5 num-packets 20
+ description CORE-PE5 - CORE-PE2 JITTER
+ frequency 60
+ip sla schedule 1052 life forever start-time now
+!
+ip sla 1053
+ udp-jitter 172.16.10.3 5000 source-ip 172.16.10.5 num-packets 20
+ description CORE-PE5 - CORE-PE3 JITTER
+ frequency 60
+ip sla schedule 1053 life forever start-time now
+!
+ip sla 1054
+ udp-jitter 172.16.10.4 5000 source-ip 172.16.10.5 num-packets 20
+ description CORE-PE5 - CORE-PE4 JITTER
+ frequency 60
+ip sla schedule 1054 life forever start-time now
+!
+! -- IP SLA: customer ACDC probes from PE5
+ip sla 600
+ icmp-echo 172.16.21.1 source-interface Loopback0
+ description CUST-ACDC-PE5 - CUST-ACDC ECHO
+ frequency 60
+ip sla schedule 600 life forever start-time now
+!
+ip sla 1600
+ udp-jitter 172.16.21.1 5000 source-ip 172.16.10.5 num-packets 20
+ description CUST-ACDC-PE5 - CUST-ACDC JITTER
+ frequency 60
+ip sla schedule 1600 life forever start-time now
+!
 snmp-server community public RO
 snmp-server location EVE-NG Lab
 !

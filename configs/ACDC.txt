@@ -85,6 +85,69 @@ router isis LAB
 !
 mpls ldp router-id Loopback0 force
 !
+ip sla responder
+!
+! -- IP SLA: customer ACDC probes sourced from ACDC CE (172.16.21.1) to all PEs
+ip sla 501
+ icmp-echo 172.16.10.1 source-interface Loopback0
+ description CUST-ACDC - CUST-ACDC-PE1 ECHO
+ frequency 60
+ip sla schedule 501 life forever start-time now
+!
+ip sla 502
+ icmp-echo 172.16.10.2 source-interface Loopback0
+ description CUST-ACDC - CUST-ACDC-PE2 ECHO
+ frequency 60
+ip sla schedule 502 life forever start-time now
+!
+ip sla 503
+ icmp-echo 172.16.10.3 source-interface Loopback0
+ description CUST-ACDC - CUST-ACDC-PE3 ECHO
+ frequency 60
+ip sla schedule 503 life forever start-time now
+!
+ip sla 504
+ icmp-echo 172.16.10.4 source-interface Loopback0
+ description CUST-ACDC - CUST-ACDC-PE4 ECHO
+ frequency 60
+ip sla schedule 504 life forever start-time now
+!
+ip sla 505
+ icmp-echo 172.16.10.5 source-interface Loopback0
+ description CUST-ACDC - CUST-ACDC-PE5 ECHO
+ frequency 60
+ip sla schedule 505 life forever start-time now
+!
+ip sla 1501
+ udp-jitter 172.16.10.1 5000 source-ip 172.16.21.1 num-packets 20
+ description CUST-ACDC - CUST-ACDC-PE1 JITTER
+ frequency 60
+ip sla schedule 1501 life forever start-time now
+!
+ip sla 1502
+ udp-jitter 172.16.10.2 5000 source-ip 172.16.21.1 num-packets 20
+ description CUST-ACDC - CUST-ACDC-PE2 JITTER
+ frequency 60
+ip sla schedule 1502 life forever start-time now
+!
+ip sla 1503
+ udp-jitter 172.16.10.3 5000 source-ip 172.16.21.1 num-packets 20
+ description CUST-ACDC - CUST-ACDC-PE3 JITTER
+ frequency 60
+ip sla schedule 1503 life forever start-time now
+!
+ip sla 1504
+ udp-jitter 172.16.10.4 5000 source-ip 172.16.21.1 num-packets 20
+ description CUST-ACDC - CUST-ACDC-PE4 JITTER
+ frequency 60
+ip sla schedule 1504 life forever start-time now
+!
+ip sla 1505
+ udp-jitter 172.16.10.5 5000 source-ip 172.16.21.1 num-packets 20
+ description CUST-ACDC - CUST-ACDC-PE5 JITTER
+ frequency 60
+ip sla schedule 1505 life forever start-time now
+!
 snmp-server community public RO
 snmp-server location EVE-NG Lab
 !
