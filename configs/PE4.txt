@@ -98,16 +98,15 @@ interface FastEthernet3/0
  mpls ip
  no shutdown
 !
-! -- New PE-CE links: one physical per CPE, 802.1Q with VLAN 10 (global IS-IS+MPLS)
-!    and VLAN 20 (per-customer VRF). VLAN 10 carries the CPE Lo0 (172.16.21.X)
-!    and label distribution; VLAN 20 carries customer traffic to/from Lo100.
+! -- New PE-CE links: PA-4E in slot 4 (e4/0-e4/3), one port per CE.
+!    802.1Q with VLAN 10 (global IS-IS+MPLS) and VLAN 20 (per-customer VRF).
 !
-interface FastEthernet4/0
+interface Ethernet4/0
  description PE-CE -- ACDC fa0/0 (trunk: vlan10=global, vlan20=VRF ACDC)
  no ip address
  no shutdown
 !
-interface FastEthernet4/0.10
+interface Ethernet4/0.10
  description CORE -- ACDC fa0/0.10 (global IS-IS+MPLS)
  encapsulation dot1Q 10
  ip address 10.0.21.1 255.255.255.252
@@ -116,19 +115,19 @@ interface FastEthernet4/0.10
  isis network point-to-point
  mpls ip
 !
-interface FastEthernet4/0.20
+interface Ethernet4/0.20
  description CE -- ACDC fa0/0.20 (VRF ACDC customer)
  encapsulation dot1Q 20
  vrf forwarding ACDC
  ip address 10.0.22.1 255.255.255.252
  ip flow ingress
 !
-interface FastEthernet4/1
+interface Ethernet4/1
  description PE-CE -- SWANS fa0/0 (trunk)
  no ip address
  no shutdown
 !
-interface FastEthernet4/1.10
+interface Ethernet4/1.10
  description CORE -- SWANS fa0/0.10 (global)
  encapsulation dot1Q 10
  ip address 10.0.21.5 255.255.255.252
@@ -137,19 +136,19 @@ interface FastEthernet4/1.10
  isis network point-to-point
  mpls ip
 !
-interface FastEthernet4/1.20
+interface Ethernet4/1.20
  description CE -- SWANS fa0/0.20 (VRF SWANS)
  encapsulation dot1Q 20
  vrf forwarding SWANS
  ip address 10.0.22.5 255.255.255.252
  ip flow ingress
 !
-interface FastEthernet5/0
+interface Ethernet4/2
  description PE-CE -- SEPULTURA fa0/0 (trunk)
  no ip address
  no shutdown
 !
-interface FastEthernet5/0.10
+interface Ethernet4/2.10
  description CORE -- SEPULTURA fa0/0.10 (global)
  encapsulation dot1Q 10
  ip address 10.0.21.9 255.255.255.252
@@ -158,19 +157,19 @@ interface FastEthernet5/0.10
  isis network point-to-point
  mpls ip
 !
-interface FastEthernet5/0.20
+interface Ethernet4/2.20
  description CE -- SEPULTURA fa0/0.20 (VRF SEPULTURA)
  encapsulation dot1Q 20
  vrf forwarding SEPULTURA
  ip address 10.0.22.9 255.255.255.252
  ip flow ingress
 !
-interface FastEthernet5/1
+interface Ethernet4/3
  description PE-CE -- NIN fa0/0 (trunk)
  no ip address
  no shutdown
 !
-interface FastEthernet5/1.10
+interface Ethernet4/3.10
  description CORE -- NIN fa0/0.10 (global)
  encapsulation dot1Q 10
  ip address 10.0.21.13 255.255.255.252
@@ -179,7 +178,7 @@ interface FastEthernet5/1.10
  isis network point-to-point
  mpls ip
 !
-interface FastEthernet5/1.20
+interface Ethernet4/3.20
  description CE -- NIN fa0/0.20 (VRF NIN)
  encapsulation dot1Q 20
  vrf forwarding NIN

@@ -94,38 +94,72 @@ interface FastEthernet3/0
  mpls ip
  no shutdown
 !
-! -- Trunk to FreeBSD CE (4 customer VLANs, one per VRF)
+! -- Trunk to FreeBSD CE node18 (4 customer VLANs, one per VRF)
 interface FastEthernet4/0
- description TRUNK -- FreeBSD em1 (vlans 1803-1806)
+ description TRUNK -- freebsd13 em1 (vlans 1803-1806)
  no ip address
  no shutdown
 !
 interface FastEthernet4/0.1803
- description CE-LINK -- VRF ACDC -- FreeBSD vlan1803
+ description CE-LINK -- VRF ACDC -- freebsd13 vlan1803
  encapsulation dot1Q 1803
  vrf forwarding ACDC
  ip address 100.112.1.1 255.255.255.252
  ip flow ingress
 !
 interface FastEthernet4/0.1804
- description CE-LINK -- VRF SWANS -- FreeBSD vlan1804
+ description CE-LINK -- VRF SWANS -- freebsd13 vlan1804
  encapsulation dot1Q 1804
  vrf forwarding SWANS
  ip address 100.112.1.5 255.255.255.252
  ip flow ingress
 !
 interface FastEthernet4/0.1805
- description CE-LINK -- VRF SEPULTURA -- FreeBSD vlan1805
+ description CE-LINK -- VRF SEPULTURA -- freebsd13 vlan1805
  encapsulation dot1Q 1805
  vrf forwarding SEPULTURA
  ip address 100.112.1.9 255.255.255.252
  ip flow ingress
 !
 interface FastEthernet4/0.1806
- description CE-LINK -- VRF NIN -- FreeBSD vlan1806
+ description CE-LINK -- VRF NIN -- freebsd13 vlan1806
  encapsulation dot1Q 1806
  vrf forwarding NIN
  ip address 100.112.1.13 255.255.255.252
+ ip flow ingress
+!
+! -- Trunk to FreeBSD CE node24 (same VLANs, new /28 100.112.2.0)
+interface FastEthernet5/0
+ description TRUNK -- freebsd14 em1 (vlans 1803-1806)
+ no ip address
+ no shutdown
+!
+interface FastEthernet5/0.1803
+ description CE-LINK -- VRF ACDC -- freebsd14 vlan1803
+ encapsulation dot1Q 1803
+ vrf forwarding ACDC
+ ip address 100.112.2.1 255.255.255.252
+ ip flow ingress
+!
+interface FastEthernet5/0.1804
+ description CE-LINK -- VRF SWANS -- freebsd14 vlan1804
+ encapsulation dot1Q 1804
+ vrf forwarding SWANS
+ ip address 100.112.2.5 255.255.255.252
+ ip flow ingress
+!
+interface FastEthernet5/0.1805
+ description CE-LINK -- VRF SEPULTURA -- freebsd14 vlan1805
+ encapsulation dot1Q 1805
+ vrf forwarding SEPULTURA
+ ip address 100.112.2.9 255.255.255.252
+ ip flow ingress
+!
+interface FastEthernet5/0.1806
+ description CE-LINK -- VRF NIN -- freebsd14 vlan1806
+ encapsulation dot1Q 1806
+ vrf forwarding NIN
+ ip address 100.112.2.13 255.255.255.252
  ip flow ingress
 !
 router isis LAB

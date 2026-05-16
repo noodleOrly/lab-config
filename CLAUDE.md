@@ -1,11 +1,11 @@
 # lab-config — Claude Code Project Context
 
-Source-of-truth configs and deploy tooling for a 22-node EVE-NG lab (`IRIS_BGP_ISIS_Lab.unl`).
+Source-of-truth configs and deploy tooling for a 23-node EVE-NG lab (`IRIS_BGP_ISIS_Lab.unl`).
 Edit `configs/*.txt` here, sync to the EVE-NG host, optionally live-apply or wipe-and-reload.
 
 ## Topology
 
-22 nodes, four platform families:
+23 nodes, four platform families:
 
 | Role | Devices | Platform | Image |
 |---|---|---|---|
@@ -16,6 +16,7 @@ Edit `configs/*.txt` here, sync to the EVE-NG host, optionally live-apply or wip
 | Customer branch site | ACDC_SITE_A/B, SWANS_SITE_A/B | MikroTik CHR (qemu) | RouterOS 7.7 |
 | Route reflector | RR1, RR2 | Juniper vSRX-NG (qemu) | Junos 22.2R1 |
 | Customer host | freebsd13 | FreeBSD 13.5 (qemu) | RELEASE-amd64 cloud image |
+| ACDC branch host | ACDC_HOST | FreeBSD 13.5 (qemu) | RELEASE-amd64 cloud image |
 
 - ISIS area `49.0001`, level-2-only, metric-style wide. New CE NETs: `49.0001.0000.AC10.150X.00` (X = 1..4)
 - iBGP AS 65001; RR1 reflects to PE1/PE2/PE3 + 7206VXR, RR2 reflects to PE3/PE4/PE5 + 7206VXR (PE3 and 7206VXR dual-homed); RR1 ↔ RR2 cluster-peer through 7206VXR
@@ -59,12 +60,26 @@ Site LANs are reachable from the matching customer VRF on FreeBSD (`setfib 2 pin
 
 Same pattern for SWANS via `10.0.22.6` and `10.101.0.{2,6}`.
 
+### ACDC_HOST — FreeBSD host behind ACDC_SITE_A (LAB-4)
+
+A plain FreeBSD 13.5 host sitting on the ACDC_SITE_A LAN (192.168.101.0/24).
+
+| Host | NIC | IP | Gateway |
+|---|---|---|---|
+| ACDC_HOST (node 23) | em0 | 192.168.101.100/24 | 192.168.101.1 (ACDC_SITE_A) |
+
+- ACDC_SITE_A ether2 is bridged into its `lo` bridge so 192.168.101.1 is reachable on the wire.
+- Reachable from freebsd13 via `setfib 2 ping 192.168.101.100` — no new routes needed (PE4 VRF ACDC and ACDC CEs already carry 192.168.101.0/24 statics).
+- Config: `configs/freebsd_acdc_host.txt`; inject: `scripts/acdc_host_inject.sh` (targets per-node qcow2 at `tmp/0/<uuid>/23/virtioa.qcow2`; falls back to VNC console since libguestfs is broken on this host).
+- VNC display `:23` (port 5923) on EVE-NG host.
+
 ## Hosts and access
 
 | Host | Address | OS | Purpose |
 |---|---|---|---|
 | EVE-NG | `root@10.2.0.147` | Ubuntu 20.04 + EVE-NG | Lab hypervisor |
 | Syslog target | `10.2.0.114` | — | Lab nodes ship syslog here |
+| freebsd14 | `root@10.2.0.140` | FreeBSD 13.5 (qemu, node 24) | 4-VRF customer host (em1 trunk to 7206VXR fa5/0) |
 
 ```bash
 # From this Mac (direct, no jump host):
@@ -96,6 +111,8 @@ GitHub access from this Mac uses SSH-over-443 (port 22 is firewalled). Remote UR
 | 9 | CPE1 | 32777 | 20 | ACDC_SITE_B | 32788 |
 | 10 | CPE2 | 32778 | 21 | SWANS_SITE_A | 32789 |
 | 11 | CPE3 | 32779 | 22 | SWANS_SITE_B | 32790 |
+| — | — | — | 23 | ACDC_HOST | 32791 |
+| — | — | — | 24 | freebsd14 | 32792 |
 
 ## Credentials (lab-only)
 
@@ -157,6 +174,7 @@ Scripts have hard-coded `LAB_UUID` / `LAB_FILE` — update these for any other l
 - Per-FIB default routes (`route_vlan1803default="default 100.112.1.1 -fib 2"` etc.) are how customer-bound traffic is steered to the right VRF; `setfib N` is how you choose at runtime.
 - Image is **not** auto-injected by `sync_eve_configs.py`. Use `scripts/freebsd_inject.sh` (or first-boot console session) to apply `/etc/rc.conf`, `/boot/loader.conf`, etc., into the qcow2.
 - **Known unresolved (LAB-2)**: `scripts/freebsd_inject.sh` relies on libguestfs which is broken on this EVE-NG host (see EVE-NG section). The qcow2 also defaults to vidconsole only, so the EVE-NG telnet console (port 32786) is silent on first boot. Workaround: connect to the FreeBSD VM via the EVE-NG web GUI's VNC viewer for the initial config session, then write `/boot/loader.conf` with `boot_multicons="YES"; console="comconsole,vidconsole"` and reboot — subsequent sessions go via serial.
+- **freebsd14 (node 24) first-boot automation**: Uses `scripts/freebsd14_firstboot.py` which connects to the EVE-NG console telnet port (32792), switches to the QEMU monitor via Ctrl+A C (the console uses `-serial mon:stdio` so both are muxed on the same port), and injects keystrokes via `sendkey` commands into the VGA console. After the first reboot, loader.conf enables comconsole so subsequent sessions can interact directly via port 32792 without the sendkey indirection. Linux UFS2 mounting is read-only — never use qemu-nbd to try to edit the qcow2 directly. Do not wipe the node after firstboot completes; wipe resets to base image and loses all config.
 
 ## Known caveats
 - LLDP has no neighbours in the lab today: the only LLDP-capable speakers (RRs, CPEs) aren't directly connected — they go through c7200 PEs which lack LLDP and don't relay it.

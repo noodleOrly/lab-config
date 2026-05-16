@@ -1,0 +1,76 @@
+# ============================================================
+# freebsd14 - FreeBSD 13.5 customer-host (multi-FIB, multi-VRF CE) -- node24
+# Hostname: freebsd14
+# em0 -> management LAN (DHCP from net-mgmt)
+# em1 -> 802.1Q trunk to 7206VXR fa5/0 (vlans 1803/1804/1805/1806)
+#        IPs from 100.112.2.0/28 (100.112.1.0/28 is freebsd13 on fa4/0)
+# ============================================================
+# This file holds the contents of /etc/rc.conf and /boot/loader.conf
+# that scripts/freebsd_inject.sh writes into the qcow2 image. Sections
+# are delimited by '@@FILE: <path>' lines.
+
+@@FILE: /boot/loader.conf
+# Multiple FIBs (default is 1; we need 6 so FIB 2..5 exist for the customer VRFs)
+net.fibs="6"
+# Serial console for EVE-NG console-port automation
+boot_multicons="YES"
+boot_serial="YES"
+comconsole_speed="9600"
+console="comconsole,vidconsole"
+
+@@FILE: /etc/rc.conf
+hostname="freebsd14"
+keymap="us.kbd"
+
+# em0: management interface, DHCP from net-mgmt cloud
+ifconfig_em0="DHCP"
+
+# em1: 802.1Q trunk to 7206VXR fa5/0 (vlans 1803-1806, one per VRF)
+ifconfig_em1="up"
+
+# Pre-create the four VLAN sub-interfaces
+cloned_interfaces="vlan1803 vlan1804 vlan1805 vlan1806"
+
+# Tell /etc/rc.d/routing which `route_*` entries to install at boot.
+static_routes="vlan1803 vlan1803default vlan1804 vlan1804default vlan1805 vlan1805default vlan1806 vlan1806default"
+
+# ACDC -- vlan1803 -> VRF ACDC (FIB 2) -> 7206VXR fa5/0.1803 100.112.2.1
+ifconfig_vlan1803="100.112.2.2/30 vlan 1803 vlandev em1"
+route_vlan1803="100.112.2.0/30 -iface vlan1803 -fib 2"
+route_vlan1803default="default 100.112.2.1 -fib 2"
+
+# SWANS -- vlan1804 -> VRF SWANS (FIB 3) -> 7206VXR fa5/0.1804 100.112.2.5
+ifconfig_vlan1804="100.112.2.6/30 vlan 1804 vlandev em1"
+route_vlan1804="100.112.2.4/30 -iface vlan1804 -fib 3"
+route_vlan1804default="default 100.112.2.5 -fib 3"
+
+# SEPULTURA -- vlan1805 -> VRF SEPULTURA (FIB 4) -> 7206VXR fa5/0.1805 100.112.2.9
+ifconfig_vlan1805="100.112.2.10/30 vlan 1805 vlandev em1"
+route_vlan1805="100.112.2.8/30 -iface vlan1805 -fib 4"
+route_vlan1805default="default 100.112.2.9 -fib 4"
+
+# NIN -- vlan1806 -> VRF NIN (FIB 5) -> 7206VXR fa5/0.1806 100.112.2.13
+ifconfig_vlan1806="100.112.2.14/30 vlan 1806 vlandev em1"
+route_vlan1806="100.112.2.12/30 -iface vlan1806 -fib 5"
+route_vlan1806default="default 100.112.2.13 -fib 5"
+
+# Services
+sshd_enable="YES"
+syslogd_enable="YES"
+syslogd_flags="-s"
+
+@@FILE: /etc/ssh/sshd_config.d/lab.conf
+PermitRootLogin yes
+PasswordAuthentication yes
+
+@@FILE: /etc/ttys.add
+# Append to /etc/ttys: enable serial console getty on ttyu0
+ttyu0   "/usr/libexec/getty 3wire"      vt100   onifconsole secure
+
+@@FILE: /etc/syslog.conf.add
+# Append to /etc/syslog.conf
+*.notice;authpriv.none;kern.debug;lpr.info;mail.crit;news.err  @10.2.0.114
+
+@@CMD: ROOT_PASSWORD
+# Set root password to lab123 (matches CLAUDE.md credentials convention)
+echo 'lab123' | pw -V /etc usermod root -h 0
