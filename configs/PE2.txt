@@ -94,48 +94,56 @@ ip sla responder
 ip sla 21
  icmp-echo 172.16.10.1 source-interface Loopback0
  description CORE-PE2 - CORE-PE1 ECHO
+ tag CORE-PE2-PE1-E
  frequency 60
 ip sla schedule 21 life forever start-time now
 !
 ip sla 23
  icmp-echo 172.16.10.3 source-interface Loopback0
  description CORE-PE2 - CORE-PE3 ECHO
+ tag CORE-PE2-PE3-E
  frequency 60
 ip sla schedule 23 life forever start-time now
 !
 ip sla 24
  icmp-echo 172.16.10.4 source-interface Loopback0
  description CORE-PE2 - CORE-PE4 ECHO
+ tag CORE-PE2-PE4-E
  frequency 60
 ip sla schedule 24 life forever start-time now
 !
 ip sla 25
  icmp-echo 172.16.10.5 source-interface Loopback0
  description CORE-PE2 - CORE-PE5 ECHO
+ tag CORE-PE2-PE5-E
  frequency 60
 ip sla schedule 25 life forever start-time now
 !
 ip sla 1021
  udp-jitter 172.16.10.1 5000 source-ip 172.16.10.2 num-packets 20
  description CORE-PE2 - CORE-PE1 JITTER
+ tag CORE-PE2-PE1-J
  frequency 60
 ip sla schedule 1021 life forever start-time now
 !
 ip sla 1023
  udp-jitter 172.16.10.3 5000 source-ip 172.16.10.2 num-packets 20
  description CORE-PE2 - CORE-PE3 JITTER
+ tag CORE-PE2-PE3-J
  frequency 60
 ip sla schedule 1023 life forever start-time now
 !
 ip sla 1024
  udp-jitter 172.16.10.4 5000 source-ip 172.16.10.2 num-packets 20
  description CORE-PE2 - CORE-PE4 JITTER
+ tag CORE-PE2-PE4-J
  frequency 60
 ip sla schedule 1024 life forever start-time now
 !
 ip sla 1025
  udp-jitter 172.16.10.5 5000 source-ip 172.16.10.2 num-packets 20
  description CORE-PE2 - CORE-PE5 JITTER
+ tag CORE-PE2-PE5-J
  frequency 60
 ip sla schedule 1025 life forever start-time now
 !
@@ -143,12 +151,14 @@ ip sla schedule 1025 life forever start-time now
 ip sla 600
  icmp-echo 172.16.21.1 source-interface Loopback0
  description CUST-ACDC-PE2 - CUST-ACDC ECHO
+ tag CUST-PE2-ACDC-E
  frequency 60
 ip sla schedule 600 life forever start-time now
 !
 ip sla 1600
  udp-jitter 172.16.21.1 5000 source-ip 172.16.10.2 num-packets 20
  description CUST-ACDC-PE2 - CUST-ACDC JITTER
+ tag CUST-PE2-ACDC-J
  frequency 60
 ip sla schedule 1600 life forever start-time now
 !

@@ -91,60 +91,70 @@ ip sla responder
 ip sla 501
  icmp-echo 172.16.10.1 source-interface Loopback0
  description CUST-ACDC - CUST-ACDC-PE1 ECHO
+ tag CUST-ACDC-PE1-E
  frequency 60
 ip sla schedule 501 life forever start-time now
 !
 ip sla 502
  icmp-echo 172.16.10.2 source-interface Loopback0
  description CUST-ACDC - CUST-ACDC-PE2 ECHO
+ tag CUST-ACDC-PE2-E
  frequency 60
 ip sla schedule 502 life forever start-time now
 !
 ip sla 503
  icmp-echo 172.16.10.3 source-interface Loopback0
  description CUST-ACDC - CUST-ACDC-PE3 ECHO
+ tag CUST-ACDC-PE3-E
  frequency 60
 ip sla schedule 503 life forever start-time now
 !
 ip sla 504
  icmp-echo 172.16.10.4 source-interface Loopback0
  description CUST-ACDC - CUST-ACDC-PE4 ECHO
+ tag CUST-ACDC-PE4-E
  frequency 60
 ip sla schedule 504 life forever start-time now
 !
 ip sla 505
  icmp-echo 172.16.10.5 source-interface Loopback0
  description CUST-ACDC - CUST-ACDC-PE5 ECHO
+ tag CUST-ACDC-PE5-E
  frequency 60
 ip sla schedule 505 life forever start-time now
 !
 ip sla 1501
  udp-jitter 172.16.10.1 5000 source-ip 172.16.21.1 num-packets 20
  description CUST-ACDC - CUST-ACDC-PE1 JITTER
+ tag CUST-ACDC-PE1-J
  frequency 60
 ip sla schedule 1501 life forever start-time now
 !
 ip sla 1502
  udp-jitter 172.16.10.2 5000 source-ip 172.16.21.1 num-packets 20
  description CUST-ACDC - CUST-ACDC-PE2 JITTER
+ tag CUST-ACDC-PE2-J
  frequency 60
 ip sla schedule 1502 life forever start-time now
 !
 ip sla 1503
  udp-jitter 172.16.10.3 5000 source-ip 172.16.21.1 num-packets 20
  description CUST-ACDC - CUST-ACDC-PE3 JITTER
+ tag CUST-ACDC-PE3-J
  frequency 60
 ip sla schedule 1503 life forever start-time now
 !
 ip sla 1504
  udp-jitter 172.16.10.4 5000 source-ip 172.16.21.1 num-packets 20
  description CUST-ACDC - CUST-ACDC-PE4 JITTER
+ tag CUST-ACDC-PE4-J
  frequency 60
 ip sla schedule 1504 life forever start-time now
 !
 ip sla 1505
  udp-jitter 172.16.10.5 5000 source-ip 172.16.21.1 num-packets 20
  description CUST-ACDC - CUST-ACDC-PE5 JITTER
+ tag CUST-ACDC-PE5-J
  frequency 60
 ip sla schedule 1505 life forever start-time now
 !
