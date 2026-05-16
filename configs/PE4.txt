@@ -116,10 +116,11 @@ interface Ethernet4/0.10
  mpls ip
 !
 interface Ethernet4/0.20
- description CE -- ACDC fa0/0.20 (VRF ACDC customer)
+ description CUST|ACDC-001|Link to ACDC|CIR-50M|PIR-60M
  encapsulation dot1Q 20
  vrf forwarding ACDC
  ip address 10.0.22.1 255.255.255.252
+ bandwidth 50000
  ip flow ingress
 !
 interface Ethernet4/1
@@ -137,10 +138,11 @@ interface Ethernet4/1.10
  mpls ip
 !
 interface Ethernet4/1.20
- description CE -- SWANS fa0/0.20 (VRF SWANS)
+ description CUST|SWANS-001|Link to SWANS|CIR-50M|PIR-60M
  encapsulation dot1Q 20
  vrf forwarding SWANS
  ip address 10.0.22.5 255.255.255.252
+ bandwidth 50000
  ip flow ingress
 !
 interface Ethernet4/2
@@ -158,10 +160,11 @@ interface Ethernet4/2.10
  mpls ip
 !
 interface Ethernet4/2.20
- description CE -- SEPULTURA fa0/0.20 (VRF SEPULTURA)
+ description CUST|SEPULTURA-001|Link to SEPULTURA|CIR-50M|PIR-60M
  encapsulation dot1Q 20
  vrf forwarding SEPULTURA
  ip address 10.0.22.9 255.255.255.252
+ bandwidth 50000
  ip flow ingress
 !
 interface Ethernet4/3
@@ -179,10 +182,11 @@ interface Ethernet4/3.10
  mpls ip
 !
 interface Ethernet4/3.20
- description CE -- NIN fa0/0.20 (VRF NIN)
+ description CUST|NIN-001|Link to NIN|CIR-50M|PIR-60M
  encapsulation dot1Q 20
  vrf forwarding NIN
  ip address 10.0.22.13 255.255.255.252
+ bandwidth 50000
  ip flow ingress
 !
 ip route 172.16.20.4 255.255.255.255 10.0.2.14
