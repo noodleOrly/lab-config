@@ -17,6 +17,8 @@ echo "=== $NAME: wipe ==="
 sleep 2
 
 echo "=== $NAME: tmp after wipe ==="
+mkdir -p $NDIR
+getent group unl &>/dev/null && chown root:unl $NDIR || true
 ls -la $NDIR 2>/dev/null
 
 echo "=== $NAME: refresh juniper.conf + startup-config from repo ==="
