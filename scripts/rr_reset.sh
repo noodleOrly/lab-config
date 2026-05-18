@@ -19,7 +19,23 @@ sleep 2
 echo "=== $NAME: tmp after wipe ==="
 mkdir -p $NDIR
 getent group unl &>/dev/null && chown root:unl $NDIR || true
+# Remove stale .lock left by a crashed qemu — EVE-NG treats lock+no-listener as status=1
+# (stopped-but-locked) and silently skips the start, leaving qemu never launched.
+rm -f $NDIR/.lock
 ls -la $NDIR 2>/dev/null
+
+echo "=== $NAME: ensure virtioa.qcow2 (CoW over base image) ==="
+VSRX_BASE=$(ls /opt/unetlab/addons/qemu/vsrxng-*/virtioa.qcow2 2>/dev/null | head -1)
+if [ -z "$VSRX_BASE" ]; then
+  echo "ERROR: no vSRX base image found under /opt/unetlab/addons/qemu/vsrxng-*/" >&2
+  exit 1
+fi
+if [ ! -f $NDIR/virtioa.qcow2 ]; then
+  qemu-img create -f qcow2 -b $VSRX_BASE -F qcow2 $NDIR/virtioa.qcow2
+  chown root:unl $NDIR/virtioa.qcow2
+  chmod 0664 $NDIR/virtioa.qcow2
+fi
+ls -lah $NDIR/virtioa.qcow2
 
 echo "=== $NAME: refresh juniper.conf + startup-config from repo ==="
 cp $SRC $NDIR/juniper.conf
