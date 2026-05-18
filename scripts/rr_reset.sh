@@ -11,8 +11,9 @@ SRC=/tmp/lab-configs/configs/${NAME}.txt
 LAB_NAME=$(basename $LAB)
 COOKIES=/tmp/eve-rr-reset-cookies.txt
 
+EVE_BASE="https://localhost"
 eve_api() {
-  curl -s -b $COOKIES "$@"
+  curl -sk -b $COOKIES "$@"
 }
 
 parse_json() {
@@ -31,14 +32,14 @@ except Exception as e:
 }
 
 echo "=== EVE-NG API login ==="
-curl -s -c $COOKIES -b $COOKIES \
-  -X POST "http://localhost/api/auth/login" \
+curl -sk -c $COOKIES -b $COOKIES \
+  -X POST "${EVE_BASE}/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"eve","html5":"0"}' \
   | parse_json
 
 echo "=== $NAME (node $NID): stop ==="
-eve_api "http://localhost/api/labs/${LAB_NAME}/nodes/${NID}/stop" | parse_json
+eve_api "${EVE_BASE}/api/labs/${LAB_NAME}/nodes/${NID}/stop" | parse_json
 # Also try unl_wrapper stop with -m for older EVE-NG versions
 /opt/unetlab/wrappers/unl_wrapper -a stop -T 0 -F $LAB -D $NID -m 0 2>&1 || true
 sleep 3
@@ -87,7 +88,7 @@ ls -la $NDIR/config.iso
 
 echo "=== $NAME: start ==="
 # Try API first (works on all EVE-NG versions); fall back to unl_wrapper
-result=$(eve_api "http://localhost/api/labs/${LAB_NAME}/nodes/${NID}/start" 2>&1)
+result=$(eve_api "${EVE_BASE}/api/labs/${LAB_NAME}/nodes/${NID}/start" 2>&1)
 echo "$result" | parse_json
 # Fall back to unl_wrapper if API returned nothing, unauthorized, or failure
 if echo "$result" | grep -qE '"unauthorized"|"fail"|^$'; then
