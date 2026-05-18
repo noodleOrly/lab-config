@@ -15,16 +15,30 @@ eve_api() {
   curl -s -b $COOKIES "$@"
 }
 
+parse_json() {
+  python3 -c "
+import sys, json
+raw = sys.stdin.read().strip()
+if not raw:
+    print('(empty response)')
+    sys.exit(0)
+try:
+    d = json.loads(raw)
+    print(d.get('status','?'), str(d.get('message',''))[:60])
+except Exception as e:
+    print('(non-JSON:', raw[:80], ')')
+" 2>&1 || true
+}
+
 echo "=== EVE-NG API login ==="
 curl -s -c $COOKIES -b $COOKIES \
   -X POST "http://localhost/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"eve","html5":"0"}' \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status'), d.get('message','')[:50])"
+  | parse_json
 
 echo "=== $NAME (node $NID): stop ==="
-eve_api "http://localhost/api/labs/${LAB_NAME}/nodes/${NID}/stop" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status'), d.get('message','')[:50])" || true
+eve_api "http://localhost/api/labs/${LAB_NAME}/nodes/${NID}/stop" | parse_json
 # Also try unl_wrapper stop with -m for older EVE-NG versions
 /opt/unetlab/wrappers/unl_wrapper -a stop -T 0 -F $LAB -D $NID -m 0 2>&1 || true
 sleep 3
@@ -73,10 +87,11 @@ ls -la $NDIR/config.iso
 
 echo "=== $NAME: start ==="
 # Try API first (works on all EVE-NG versions); fall back to unl_wrapper
-result=$(eve_api "http://localhost/api/labs/${LAB_NAME}/nodes/${NID}/start")
-echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status'), d.get('message','')[:50])"
-# If API reported not-authenticated or failure, try unl_wrapper
-if echo "$result" | grep -q '"unauthorized"\|"fail"'; then
+result=$(eve_api "http://localhost/api/labs/${LAB_NAME}/nodes/${NID}/start" 2>&1)
+echo "$result" | parse_json
+# Fall back to unl_wrapper if API returned nothing, unauthorized, or failure
+if echo "$result" | grep -qE '"unauthorized"|"fail"|^$'; then
+  echo "(API start failed or empty — trying unl_wrapper)"
   /opt/unetlab/wrappers/unl_wrapper -a start -T 0 -F $LAB -D $NID 2>&1 || true
 fi
 echo "Done. Wait ~6 min for vSRX boot + first commit."
