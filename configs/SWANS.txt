@@ -6,7 +6,7 @@
 !   .10  global IS-IS+MPLS link    -- 10.0.21.4/30
 !   .20  customer (PE4 VRF SWANS)  -- 10.0.22.4/30
 ! Sites: fa1/0 -> SWANS_SITE_A (10.101.0.0/30, lan 192.168.103.0/24)
-!        fa1/1 -> SWANS_SITE_B (10.101.0.4/30, lan 192.168.104.0/24)
+!        fa2/0 -> SWANS_SITE_B (10.101.0.4/30, lan 192.168.104.0/24)
 ! ============================================================
 
 hostname SWANS
@@ -62,8 +62,8 @@ interface FastEthernet1/0
  ip flow ingress
  no shutdown
 !
-interface FastEthernet1/1
- description CE -- SWANS_SITE_B ether1
+interface FastEthernet2/0
+ description CE -- SWANS_SITE_B ether2
  ip address 10.101.0.5 255.255.255.252
  ip flow ingress
  no shutdown

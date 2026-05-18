@@ -13,7 +13,7 @@ add name=lo comment="Site-A LAN loopback"
 
 /ip address
 add address=192.168.103.1/24 interface=lo comment="Site-A LAN"
-add address=10.101.0.2/30    interface=ether1 comment="Uplink to SWANS fa1/0"
+add address=10.101.0.2/30    interface=ether2 comment="Uplink to SWANS fa1/0"
 
 /ip route
 add dst-address=0.0.0.0/0 gateway=10.101.0.1 comment="Default via SWANS"
