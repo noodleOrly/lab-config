@@ -22,4 +22,4 @@ ps aux | grep 'qemu_wrapper' | grep -v grep | while read -r line; do
     port=$(ss -tlnp 2>/dev/null | grep "pid=$pid," | grep -oP ':\K[0-9]+' | head -1)
     qpid=$(ss -tlnp 2>/dev/null | grep "pid=$pid," | grep -oP '"qemu-system[^"]*",pid=\K[0-9]+' | head -1)
     printf "%-5s %-7s %s\n" "$nid" "${port:--}" "${qpid:--}"
-done | sort -n
+done | sort -n | uniq
