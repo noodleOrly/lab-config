@@ -8,11 +8,23 @@ Usage:
   python3 live_apply_sla.py [PE1|PE2|PE3|PE4|PE5|ACDC ...]  # subset
   python3 live_apply_sla.py                                   # all
 """
-import socket, time, sys, re
+import socket, time, sys, re, subprocess
 
-# Use --host <IP> when EVE-NG console ports aren't accessible on localhost
 HOST = "127.0.0.1"
 BASE_PORT = 32768
+
+
+def node_console_port(nid):
+    try:
+        out = subprocess.check_output(['ps', 'aux'], text=True)
+        for line in out.splitlines():
+            if f' -D {nid} ' in line and ('qemu_wrapper' in line or 'dynamips_wrapper' in line):
+                m = re.search(r'-C (\d+)', line)
+                if m:
+                    return int(m.group(1))
+    except Exception:
+        pass
+    return BASE_PORT + nid
 
 LO  = {1: "172.16.10.1", 2: "172.16.10.2", 3: "172.16.10.3",
        4: "172.16.10.4", 5: "172.16.10.5"}
@@ -135,7 +147,7 @@ class Console:
 
 
 def apply_node(nid, name, sla_lines):
-    port = BASE_PORT + nid
+    port = node_console_port(nid)
     print(f"\n=== {name} (port {port}) ===")
     c = Console(port, name)
     try:
@@ -192,14 +204,7 @@ def apply_node(nid, name, sla_lines):
 
 
 def main():
-    global HOST
-    args = sys.argv[1:]
-    if '--host' in args:
-        idx = args.index('--host')
-        HOST = args[idx + 1]
-        args = args[:idx] + args[idx+2:]
-    print(f"Connecting to EVE-NG console host: {HOST}")
-    filter_names = {a.upper() for a in args}
+    filter_names = {a.upper() for a in sys.argv[1:]}
     nodes = [(nid, name, lines) for nid, name, lines in ALL_NODES
              if not filter_names or name.upper() in filter_names]
     if not nodes:

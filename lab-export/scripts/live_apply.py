@@ -2,12 +2,30 @@
 """Live-apply CDP/LLDP to running lab nodes via telnet to EVE-NG console ports.
 Idempotent: re-running is safe.
 """
-import socket, time, sys, re
+import socket, time, sys, re, subprocess
 
-# Use --host <IP> when EVE-NG console ports aren't accessible on localhost
-# (some EVE-NG versions only bind the proxy to the management IP, not 127.0.0.1)
 HOST = "127.0.0.1"
 BASE_PORT = 32768
+
+
+def node_console_port(nid):
+    """Return the actual console telnet port for a node from the running wrapper process.
+
+    EVE-NG wrappers (qemu_wrapper, dynamips_wrapper) open a random high port
+    passed as -C <port> -D <nid>. On some EVE-NG versions the 32768+N proxy
+    only binds to the management IP, not localhost, so we go direct.
+    Falls back to BASE_PORT + nid if the process isn't found.
+    """
+    try:
+        out = subprocess.check_output(['ps', 'aux'], text=True)
+        for line in out.splitlines():
+            if f' -D {nid} ' in line and ('qemu_wrapper' in line or 'dynamips_wrapper' in line):
+                m = re.search(r'-C (\d+)', line)
+                if m:
+                    return int(m.group(1))
+    except Exception:
+        pass
+    return BASE_PORT + nid
 
 CISCO_NODES   = [(1, "7206VXR"), (4, "PE1"), (5, "PE2"), (6, "PE3"), (7, "PE4"), (8, "PE5")]
 MIKROTIK_NODES = [(9, "CPE1"), (10, "CPE2"), (11, "CPE3"), (12, "CPE4"), (13, "CPE5")]
@@ -204,27 +222,26 @@ def apply_junos(port, name, log):
 
 
 def main():
-    global HOST
-    if '--host' in sys.argv:
-        HOST = sys.argv[sys.argv.index('--host') + 1]
-    print(f"Connecting to EVE-NG console host: {HOST}")
     results = {}
     log = open("/tmp/live_apply.transcript.bin", "wb")
     for nid, name in CISCO_NODES:
+        port = node_console_port(nid)
         try:
-            results[name] = apply_cisco(BASE_PORT + nid, name, log)
+            results[name] = apply_cisco(port, name, log)
         except Exception as e:
             print(f"  {name}: EXCEPTION {e}")
             results[name] = False
     for nid, name in MIKROTIK_NODES:
+        port = node_console_port(nid)
         try:
-            results[name] = apply_mikrotik(BASE_PORT + nid, name, log)
+            results[name] = apply_mikrotik(port, name, log)
         except Exception as e:
             print(f"  {name}: EXCEPTION {e}")
             results[name] = False
     for nid, name in JUNOS_NODES:
+        port = node_console_port(nid)
         try:
-            results[name] = apply_junos(BASE_PORT + nid, name, log)
+            results[name] = apply_junos(port, name, log)
         except Exception as e:
             print(f"  {name}: EXCEPTION {e}")
             results[name] = False
